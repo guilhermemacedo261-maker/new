@@ -1,0 +1,55 @@
+import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import type { Game } from '@/types/database';
+
+export async function listGamesForWeek(weekId: string): Promise<Game[]> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('games')
+    .select('*')
+    .eq('week_id', weekId)
+    .order('game_time', { ascending: true });
+  if (error) throw error;
+  return (data as Game[]) ?? [];
+}
+
+export type GameCorrection = Partial<
+  Pick<
+    Game,
+    | 'away_team'
+    | 'away_team_abbreviation'
+    | 'away_team_logo'
+    | 'home_team'
+    | 'home_team_abbreviation'
+    | 'home_team_logo'
+    | 'game_date'
+    | 'game_time'
+    | 'venue'
+    | 'status'
+    | 'away_score'
+    | 'home_score'
+  >
+>;
+
+/** Correcao manual de um jogo pelo admin (secao 11 - "corrigir jogo manualmente"). */
+export async function correctGame(gameId: string, correction: GameCorrection): Promise<Game> {
+  const supabase = getSupabaseAdmin();
+
+  const patch: GameCorrection & { winner?: Game['winner']; results_processed?: boolean } = { ...correction };
+
+  // Sempre confere o estado atual (nao so quando o placar vem na correcao):
+  // o admin pode editar so o placar numa chamada e so o status noutra, e o
+  // vencedor precisa refletir a combinacao final dos dois.
+  const { data: current } = await supabase.from('games').select('*').eq('id', gameId).single();
+  const effectiveStatus = correction.status ?? current?.status;
+  const homeScore = correction.home_score ?? current?.home_score ?? null;
+  const awayScore = correction.away_score ?? current?.away_score ?? null;
+
+  if (effectiveStatus === 'final' && homeScore !== null && awayScore !== null) {
+    patch.winner = homeScore === awayScore ? 'tie' : homeScore > awayScore ? 'home' : 'away';
+    patch.results_processed = false; // forca o ranking-service reprocessar com o placar corrigido
+  }
+
+  const { data, error } = await supabase.from('games').update(patch).eq('id', gameId).select('*').single();
+  if (error) throw error;
+  return data as Game;
+}
