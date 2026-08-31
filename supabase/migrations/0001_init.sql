@@ -157,17 +157,6 @@ create table if not exists participant_achievements (
 );
 
 -- ------------------------------------------------------------
--- whatsapp_sends (historico de envios)
--- ------------------------------------------------------------
-create table if not exists whatsapp_sends (
-  id uuid primary key default gen_random_uuid(),
-  week_id uuid not null references weeks(id) on delete cascade,
-  status text not null check (status in ('success', 'failed')),
-  error_message text,
-  sent_at timestamptz not null default now()
-);
-
--- ------------------------------------------------------------
 -- RLS: bloqueia acesso via anon key. Todo acesso passa pelas API
 -- routes do Next.js usando a service role key (que ignora RLS).
 -- ------------------------------------------------------------
@@ -180,7 +169,6 @@ alter table weekly_results enable row level security;
 alter table season_results enable row level security;
 alter table achievements enable row level security;
 alter table participant_achievements enable row level security;
-alter table whatsapp_sends enable row level security;
 -- Nenhuma policy criada de proposito = nenhum acesso via anon/authenticated key.
 
 -- ------------------------------------------------------------

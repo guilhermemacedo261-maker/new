@@ -2,7 +2,8 @@ import { createCanvas, loadImage, type Image } from '@napi-rs/canvas';
 import type { Participant } from '@/types/database';
 
 // ============================================================
-// Gerador da imagem de palpites enviada ao WhatsApp toda quinta.
+// Gerador da imagem de palpites da semana, disponivel para o admin
+// baixar em /admin/imagem e compartilhar onde quiser (WhatsApp, etc).
 // Desenhado com @napi-rs/canvas (Rust/skia via N-API): roda em
 // serverless sem precisar de um browser headless (Playwright/
 // Puppeteer exigiriam um binario de Chromium pesado em produção),

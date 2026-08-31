@@ -3,13 +3,16 @@
 import { useEffect, useState } from 'react';
 import type { Week } from '@/types/database';
 
-export default function AdminWhatsappPage() {
+/**
+ * Gera a imagem dos palpites da semana para o admin baixar e compartilhar
+ * manualmente (WhatsApp, grupo, onde quiser). Nao existe mais envio
+ * automatico - o admin decide quando e onde postar.
+ */
+export default function AdminImagemPage() {
   const [weeks, setWeeks] = useState<Week[]>([]);
   const [weekId, setWeekId] = useState('');
   const [imageVersion, setImageVersion] = useState(0);
   const [showImage, setShowImage] = useState(false);
-  const [sending, setSending] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/admin/weeks')
@@ -25,22 +28,9 @@ export default function AdminWhatsappPage() {
     setImageVersion((v) => v + 1);
   }
 
-  async function handleSend() {
-    setSending(true);
-    setMessage(null);
-    const res = await fetch('/api/admin/whatsapp/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ weekId }),
-    });
-    const body = await res.json();
-    setSending(false);
-    setMessage(res.ok ? '✅ Enviado para o WhatsApp!' : `❌ ${body.error}`);
-  }
-
   return (
     <div className="p-4 md:p-8 max-w-2xl">
-      <h1 className="font-display text-2xl mb-6">WhatsApp</h1>
+      <h1 className="font-display text-2xl mb-6">Imagem dos Palpites</h1>
 
       <select
         value={weekId}
@@ -61,16 +51,27 @@ export default function AdminWhatsappPage() {
         <button onClick={handleGenerate} disabled={!weekId} className="flex-1 py-3 rounded-xl bg-buteco-gold text-buteco-black font-display disabled:opacity-50">
           GERAR IMAGEM DOS PALPITES
         </button>
-        <button onClick={handleSend} disabled={!weekId || sending} className="flex-1 py-3 rounded-xl bg-buteco-green font-display disabled:opacity-50">
-          {sending ? 'ENVIANDO...' : 'ENVIAR PARA WHATSAPP'}
-        </button>
+        <a
+          href={weekId ? `/api/admin/image/generate?weekId=${weekId}&download=1` : undefined}
+          className={`flex-1 py-3 rounded-xl bg-buteco-green font-display text-center ${
+            !weekId ? 'opacity-50 pointer-events-none' : ''
+          }`}
+        >
+          BAIXAR IMAGEM
+        </a>
       </div>
 
-      {message && <p className="text-center text-sm mb-4">{message}</p>}
+      <p className="text-center text-xs text-buteco-white/50 mb-4">
+        Baixe a imagem e envie manualmente para o grupo do WhatsApp (ou onde quiser).
+      </p>
 
       {showImage && weekId && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={`/api/admin/image/generate?weekId=${weekId}&v=${imageVersion}`} alt="Tabela de palpites" className="w-full rounded-xl border border-white/10" />
+        <img
+          src={`/api/admin/image/generate?weekId=${weekId}&v=${imageVersion}`}
+          alt="Tabela de palpites"
+          className="w-full rounded-xl border border-white/10"
+        />
       )}
     </div>
   );

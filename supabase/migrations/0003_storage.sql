@@ -1,7 +1,7 @@
 -- Bucket publico para as fotos dos participantes (secao 3/21 - Supabase
 -- Storage). Publico de leitura porque as fotos aparecem no site e na
--- imagem enviada ao WhatsApp; upload continua restrito porque so a API
--- do admin (com a service role key) escreve no bucket.
+-- imagem de palpites que o admin baixa; upload continua restrito porque
+-- so a API do admin (com a service role key) escreve no bucket.
 insert into storage.buckets (id, name, public)
 values ('participant-photos', 'participant-photos', true)
 on conflict (id) do nothing;

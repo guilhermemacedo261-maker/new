@@ -114,14 +114,6 @@ export type ParticipantAchievement = {
   earned_at: string;
 };
 
-export type WhatsappSend = {
-  id: string;
-  week_id: string;
-  status: 'success' | 'failed';
-  error_message: string | null;
-  sent_at: string;
-};
-
 export type GameWithPick = Game & {
   my_pick: TeamSide | null;
 };

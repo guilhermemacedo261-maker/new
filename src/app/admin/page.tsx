@@ -9,7 +9,7 @@ const SECTIONS = [
   { href: '/admin/weeks', label: '📅 Semanas', desc: 'Ver rodadas, criar, encerrar, reabrir' },
   { href: '/admin/games', label: '🏈 Jogos', desc: 'Corrigir times, horários e placares' },
   { href: '/admin/picks', label: '📋 Palpites', desc: 'Ver os palpites de todos' },
-  { href: '/admin/whatsapp', label: '📲 WhatsApp', desc: 'Gerar imagem e enviar ao grupo' },
+  { href: '/admin/imagem', label: '📷 Imagem dos Palpites', desc: 'Gerar e baixar a imagem da semana' },
 ];
 
 export default function AdminHomePage() {

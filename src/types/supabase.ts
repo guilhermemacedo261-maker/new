@@ -8,7 +8,6 @@ import type {
   SeasonResult,
   Week,
   WeeklyResult,
-  WhatsappSend,
 } from './database';
 
 // Tipagem minima do schema para o client do supabase-js. Sem isso,
@@ -37,7 +36,6 @@ export interface Database {
       season_results: TableDef<SeasonResult>;
       achievements: TableDef<Achievement>;
       participant_achievements: TableDef<ParticipantAchievement>;
-      whatsapp_sends: TableDef<WhatsappSend>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
