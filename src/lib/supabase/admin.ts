@@ -7,6 +7,17 @@ import type { Database } from '@/types/supabase';
 // Nunca importar este arquivo em um componente client ('use client').
 let _client: ReturnType<typeof createClient<Database>> | null = null;
 
+// O Next.js "sequestra" o fetch global do processo e cacheia chamadas
+// automaticamente - inclusive as que o supabase-js faz por baixo dos
+// panos - mesmo com `dynamic = 'force-dynamic'' na rota (o runtime da
+// Netlify pra Next.js nao respeita isso 100% pra fetches de bibliotecas).
+// Isso fazia edicoes no admin (ex: prazo da semana) nao aparecerem para
+// os participantes ate um novo deploy. Forcar no-store aqui garante que
+// toda consulta ao Supabase busca o dado atual, sempre.
+function noStoreFetch(input: RequestInfo | URL, init?: RequestInit) {
+  return fetch(input, { ...init, cache: 'no-store' });
+}
+
 export function getSupabaseAdmin() {
   if (_client) return _client;
 
@@ -21,6 +32,7 @@ export function getSupabaseAdmin() {
 
   _client = createClient<Database>(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: noStoreFetch },
   });
 
   return _client;
