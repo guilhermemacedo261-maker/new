@@ -50,8 +50,8 @@ export function brasiliaDate(
   return new Date(approx.getTime() - offset * 60000);
 }
 
-/** Data/hora atual, com os campos already expressos em America/Sao_Paulo. */
-export function nowInBrasilia(): {
+/** Data/hora do instante informado (padrao: agora), com os campos ja expressos em America/Sao_Paulo. */
+export function nowInBrasilia(reference = new Date()): {
   date: Date;
   year: number;
   month: number;
@@ -60,7 +60,7 @@ export function nowInBrasilia(): {
   minute: number;
   weekday: number; // 0 = domingo ... 4 = quinta
 } {
-  const now = new Date();
+  const now = reference;
   const dtf = new Intl.DateTimeFormat('en-US', {
     timeZone: APP_TIMEZONE,
     hourCycle: 'h23',
@@ -93,6 +93,24 @@ export function nowInBrasilia(): {
     minute: Number(parts.minute),
     weekday: weekdayMap[parts.weekday] ?? now.getUTCDay(),
   };
+}
+
+/**
+ * Aproximacao de "provavelmente tem jogo da NFL rolando agora" - cobre
+ * quinta e segunda a noite (TNF/MNF, ~20h-2h Brasilia, o "2h" cobrindo o
+ * jogo que vira o dia) e domingo a tarde/noite (~14h-2h Brasilia). Usada
+ * pelo cron de placar ao vivo pra so gastar credito da Netlify buscando
+ * na API da NFL quando de fato pode ter algo novo pra atualizar.
+ */
+export function isLikelyGameWindow(reference = new Date()): boolean {
+  const { weekday, hour } = nowInBrasilia(reference);
+  if (weekday === 4 && hour >= 20) return true; // quinta a noite
+  if (weekday === 5 && hour <= 2) return true; // vira-noite de quinta
+  if (weekday === 0 && hour >= 14) return true; // domingo
+  if (weekday === 1 && hour <= 2) return true; // vira-noite de domingo
+  if (weekday === 1 && hour >= 20) return true; // segunda a noite
+  if (weekday === 2 && hour <= 2) return true; // vira-noite de segunda
+  return false;
 }
 
 /** Dado um instante qualquer da semana, calcula a proxima quinta-feira 16:00 em Brasilia (fechamento de palpites). */
