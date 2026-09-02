@@ -8,6 +8,7 @@ const LINKS = [
   { href: '/picks', icon: '🏈', label: 'Palpites' },
   { href: '/ao-vivo', icon: '🔴', label: 'Ao Vivo' },
   { href: '/ranking', icon: '🏆', label: 'Ranking' },
+  { href: '/historico', icon: '📊', label: 'Histórico' },
   { href: '/perfil', icon: '👤', label: 'Perfil' },
 ];
 
