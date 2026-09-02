@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import ParticipantAvatar from '@/components/ParticipantAvatar';
 import Countdown from '@/components/Countdown';
 import type { Week } from '@/types/database';
@@ -18,7 +19,8 @@ interface LiveResponse {
   trailer?: LiveParticipantStanding | null;
 }
 
-export default function AoVivoPage() {
+function AoVivoInner() {
+  const weekId = useSearchParams().get('weekId');
   const [data, setData] = useState<LiveResponse | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
@@ -26,7 +28,8 @@ export default function AoVivoPage() {
 
   async function load() {
     try {
-      const res = await fetch('/api/live', { cache: 'no-store' });
+      const url = weekId ? `/api/live?weekId=${weekId}` : '/api/live';
+      const res = await fetch(url, { cache: 'no-store' });
       const json = (await res.json()) as LiveResponse;
       setData(json);
       setLastUpdated(new Date());
@@ -41,7 +44,8 @@ export default function AoVivoPage() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekId]);
 
   if (loading) {
     return <div className="p-8 text-center text-buteco-white/60">Carregando...</div>;
@@ -143,5 +147,13 @@ function StandoutCard({ standing, kind }: { standing: LiveParticipantStanding; k
         {standing.correct} acertos - {standing.wrong} erros
       </p>
     </div>
+  );
+}
+
+export default function AoVivoPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-buteco-white/60">Carregando...</div>}>
+      <AoVivoInner />
+    </Suspense>
   );
 }
