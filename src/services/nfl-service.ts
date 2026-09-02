@@ -1,8 +1,8 @@
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { fetchNflWeek } from '@/lib/nfl/espn';
 import type { NflGame } from '@/lib/nfl/types';
-import { nextThursday16h } from '@/lib/utils/timezone';
-import type { Season, Week } from '@/types/database';
+import { nextThursday16h, thursday16hOfWeekContaining } from '@/lib/utils/timezone';
+import type { Season, Week, WeekStatus } from '@/types/database';
 
 async function ensureSeason(year: number): Promise<Season> {
   const supabase = getSupabaseAdmin();
@@ -18,7 +18,11 @@ async function ensureSeason(year: number): Promise<Season> {
   return created as Season;
 }
 
-async function ensureWeek(seasonId: string, weekNumber: number): Promise<Week> {
+async function ensureWeek(
+  seasonId: string,
+  weekNumber: number,
+  opts: { picksCloseAt: Date; initialStatus: WeekStatus }
+): Promise<Week> {
   const supabase = getSupabaseAdmin();
   const { data: existing } = await supabase
     .from('weeks')
@@ -28,9 +32,11 @@ async function ensureWeek(seasonId: string, weekNumber: number): Promise<Week> {
     .maybeSingle();
 
   if (existing) {
-    // idempotente: se a semana ja existe e ainda esta "upcoming", promove para "open".
-    // Nao altera picks_close_at para nao mudar o prazo depois de ja ter sido aberto.
-    if (existing.status === 'upcoming') {
+    // idempotente: se a semana ja existe e ainda esta "upcoming" (preparada
+    // com antecedencia), promove para "open" quando chega a vez dela.
+    // Nunca sobrescreve picks_close_at de uma semana ja existente - isso
+    // preserva ajustes manuais feitos pelo admin em /admin/weeks.
+    if (existing.status === 'upcoming' && opts.initialStatus === 'open') {
       const { data: updated, error } = await supabase
         .from('weeks')
         .update({ status: 'open' })
@@ -49,9 +55,9 @@ async function ensureWeek(seasonId: string, weekNumber: number): Promise<Week> {
     .insert({
       season_id: seasonId,
       week_number: weekNumber,
-      status: 'open',
+      status: opts.initialStatus,
       picks_open_at: now.toISOString(),
-      picks_close_at: nextThursday16h(now).toISOString(),
+      picks_close_at: opts.picksCloseAt.toISOString(),
     })
     .select('*')
     .single();
@@ -117,11 +123,50 @@ export interface SyncResult {
 export async function syncNflWeek(params: { season?: number; week?: number } = {}): Promise<SyncResult> {
   const { info, games } = await fetchNflWeek(params);
   const season = await ensureSeason(info.season);
-  const week = await ensureWeek(season.id, info.weekNumber);
+  const week = await ensureWeek(season.id, info.weekNumber, {
+    picksCloseAt: nextThursday16h(new Date()),
+    initialStatus: 'open',
+  });
   await upsertGames(week.id, games);
   await archivePastWeeks(season.id, info.weekNumber);
 
   return { season, week, gamesCount: games.length };
+}
+
+/**
+ * Cria de uma vez todas as semanas de 1 a `toWeek` da temporada regular,
+ * ja com os jogos e o prazo de palpites calculado (quinta-feira 16h da
+ * semana de cada jogo - nao "a proxima quinta", que so faz sentido pra
+ * semana atual). Ficam com status "upcoming" (o admin pode editar as
+ * datas antes de cada uma abrir) - a rotina normal de terca-feira e que
+ * promove cada uma para "open" quando chega a vez dela.
+ */
+export async function prepareSeasonWeeks(
+  params: { season?: number; fromWeek?: number; toWeek?: number } = {}
+): Promise<{ weeks: SyncResult[] }> {
+  const fromWeek = params.fromWeek ?? 1;
+  const toWeek = params.toWeek ?? 18;
+  const results: SyncResult[] = [];
+
+  for (let weekNumber = fromWeek; weekNumber <= toWeek; weekNumber++) {
+    // eslint-disable-next-line no-await-in-loop
+    const { info, games } = await fetchNflWeek({ season: params.season, week: weekNumber });
+    // eslint-disable-next-line no-await-in-loop
+    const season = await ensureSeason(info.season);
+
+    const earliestGameTime =
+      games.length > 0 ? Math.min(...games.map((g) => new Date(g.gameTime).getTime())) : Date.now();
+    const picksCloseAt = thursday16hOfWeekContaining(new Date(earliestGameTime));
+
+    // eslint-disable-next-line no-await-in-loop
+    const week = await ensureWeek(season.id, info.weekNumber, { picksCloseAt, initialStatus: 'upcoming' });
+    // eslint-disable-next-line no-await-in-loop
+    await upsertGames(week.id, games);
+
+    results.push({ season, week, gamesCount: games.length });
+  }
+
+  return { weeks: results };
 }
 
 /**

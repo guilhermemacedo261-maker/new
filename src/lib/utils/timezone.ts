@@ -120,6 +120,58 @@ export function nextThursday16h(reference = new Date()): Date {
   return candidate;
 }
 
+/**
+ * Dado um jogo qualquer, calcula a quinta-feira 16:00 (Brasilia) da MESMA
+ * semana daquele jogo - usado ao preparar semanas futuras com antecedencia,
+ * onde "proxima quinta a partir de agora" daria a data errada (a semana 10
+ * nao fecha na proxima quinta, fecha na quinta daquela semana especifica).
+ */
+export function thursday16hOfWeekContaining(gameDate: Date): Date {
+  const weekdayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: APP_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    weekday: 'short',
+  }).formatToParts(gameDate);
+  const map = parts.reduce<Record<string, string>>((acc, p) => {
+    acc[p.type] = p.value;
+    return acc;
+  }, {});
+  const currentWeekday = weekdayMap[map.weekday] ?? 0;
+  // dias desde a quinta-feira mais recente (0 se o proprio jogo e quinta, ate 6 se e quarta).
+  const daysSinceThursday = (currentWeekday - 4 + 7) % 7;
+
+  return brasiliaDate(Number(map.year), Number(map.month), Number(map.day) - daysSinceThursday, 16, 0, 0);
+}
+
+/** Converte um ISO (UTC) para o formato aceito por <input type="datetime-local">, nos componentes de Brasilia. */
+export function toBrasiliaDateTimeLocalValue(iso: string): string {
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone: APP_TIMEZONE,
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  const parts = dtf.formatToParts(new Date(iso)).reduce<Record<string, string>>((acc, p) => {
+    acc[p.type] = p.value;
+    return acc;
+  }, {});
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
+}
+
+/** Interpreta o valor de um <input type="datetime-local"> (ex: "2026-09-18T16:00") como horario de Brasilia. */
+export function parseBrasiliaDateTimeLocal(value: string): Date {
+  const [datePart, timePart] = value.split('T');
+  const [year, month, day] = datePart.split('-').map(Number);
+  const [hour, minute] = (timePart ?? '00:00').split(':').map(Number);
+  return brasiliaDate(year, month, day, hour, minute);
+}
+
 export function formatDateBR(iso: string, opts?: Intl.DateTimeFormatOptions): string {
   return new Intl.DateTimeFormat('pt-BR', { timeZone: APP_TIMEZONE, ...opts }).format(new Date(iso));
 }

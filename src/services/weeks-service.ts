@@ -8,16 +8,34 @@ export async function getActiveSeason(): Promise<Season | null> {
   return (data as Season) ?? null;
 }
 
-/** A "semana atual" e a semana mais recente da temporada ativa (aberta, ou a ultima criada). */
+/**
+ * A "semana atual" e a semana aberta (se houver); se nenhuma estiver
+ * aberta, e a mais recente ja encerrada/finalizada. Semanas "upcoming"
+ * (preparadas com antecedencia mas que ainda nao chegou a vez) nunca
+ * contam como atual, mesmo tendo numero maior - senao preparar a
+ * temporada inteira faria o site pular direto pra semana 18.
+ */
 export async function getCurrentWeek(): Promise<Week | null> {
   const supabase = getSupabaseAdmin();
   const season = await getActiveSeason();
   if (!season) return null;
 
+  const { data: openWeek, error: openError } = await supabase
+    .from('weeks')
+    .select('*')
+    .eq('season_id', season.id)
+    .eq('status', 'open')
+    .order('week_number', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (openError) throw openError;
+  if (openWeek) return openWeek as Week;
+
   const { data, error } = await supabase
     .from('weeks')
     .select('*')
     .eq('season_id', season.id)
+    .neq('status', 'upcoming')
     .order('week_number', { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -65,6 +83,17 @@ export async function reopenWeek(weekId: string): Promise<Week> {
     .eq('id', weekId)
     .select('*')
     .single();
+  if (error) throw error;
+  return data as Week;
+}
+
+/** Ajusta manualmente quando a semana abre e/ou fecha para palpites. */
+export async function updateWeekSchedule(
+  weekId: string,
+  patch: { picks_open_at?: string; picks_close_at?: string }
+): Promise<Week> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase.from('weeks').update(patch).eq('id', weekId).select('*').single();
   if (error) throw error;
   return data as Week;
 }
