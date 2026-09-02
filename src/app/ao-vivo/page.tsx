@@ -7,7 +7,7 @@ import Countdown from '@/components/Countdown';
 import type { Week } from '@/types/database';
 import type { LiveParticipantStanding } from '@/services/live-service';
 
-const POLL_INTERVAL_MS = 15000;
+const POLL_INTERVAL_MS = 20000;
 
 interface LiveResponse {
   week: Week | null;
@@ -40,9 +40,35 @@ function AoVivoInner() {
 
   useEffect(() => {
     load();
-    timerRef.current = setInterval(load, POLL_INTERVAL_MS);
+
+    // So paginas com a aba em segundo plano (ex: esquecida aberta o dia
+    // inteiro num celular) param de consumir requisicoes/creditos da
+    // Netlify - so volta a atualizar quando a pessoa realmente esta olhando.
+    function startPolling() {
+      if (timerRef.current) return;
+      timerRef.current = setInterval(load, POLL_INTERVAL_MS);
+    }
+    function stopPolling() {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        load();
+        startPolling();
+      } else {
+        stopPolling();
+      }
+    }
+
+    if (document.visibilityState === 'visible') startPolling();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weekId]);
