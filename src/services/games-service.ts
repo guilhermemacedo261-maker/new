@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { processWeekResults } from './ranking-service';
 import type { Game } from '@/types/database';
 
 export async function listGamesForWeek(weekId: string): Promise<Game[]> {
@@ -30,11 +31,23 @@ export type GameCorrection = Partial<
   >
 >;
 
-/** Correcao manual de um jogo pelo admin (secao 11 - "corrigir jogo manualmente"). */
+/**
+ * Correcao manual de um jogo pelo admin (secao 11 - "corrigir jogo
+ * manualmente"). Duas garantias importantes:
+ *  1. Marca o jogo como `manually_corrected` - a partir daqui, a busca
+ *     automatica de jogos/resultados (cron ou botao "Atualizar") nunca
+ *     mais sobrescreve esse jogo especifico, so os outros da semana.
+ *  2. Recalcula ranking/historico/ao-vivo/hall da fama NA HORA (chama
+ *     processWeekResults direto), sem esperar o proximo ciclo do cron -
+ *     a correcao aparece no site inteiro imediatamente.
+ */
 export async function correctGame(gameId: string, correction: GameCorrection): Promise<Game> {
   const supabase = getSupabaseAdmin();
 
-  const patch: GameCorrection & { winner?: Game['winner']; results_processed?: boolean } = { ...correction };
+  const patch: GameCorrection & { winner?: Game['winner']; results_processed?: boolean; manually_corrected: true } = {
+    ...correction,
+    manually_corrected: true,
+  };
 
   // Sempre confere o estado atual (nao so quando o placar vem na correcao):
   // o admin pode editar so o placar numa chamada e so o status noutra, e o
@@ -51,5 +64,10 @@ export async function correctGame(gameId: string, correction: GameCorrection): P
 
   const { data, error } = await supabase.from('games').update(patch).eq('id', gameId).select('*').single();
   if (error) throw error;
+
+  if (current?.week_id) {
+    await processWeekResults(current.week_id);
+  }
+
   return data as Game;
 }

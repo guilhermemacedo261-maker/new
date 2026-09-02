@@ -69,23 +69,37 @@ async function upsertGames(weekId: string, games: NflGame[]) {
   if (games.length === 0) return;
   const supabase = getSupabaseAdmin();
 
-  const rows = games.map((g) => ({
-    week_id: weekId,
-    external_id: g.externalId,
-    away_team: g.awayTeam,
-    away_team_abbreviation: g.awayTeamAbbreviation,
-    away_team_logo: g.awayTeamLogo,
-    home_team: g.homeTeam,
-    home_team_abbreviation: g.homeTeamAbbreviation,
-    home_team_logo: g.homeTeamLogo,
-    game_date: g.gameDate,
-    game_time: g.gameTime,
-    venue: g.venue,
-    status: g.status,
-    away_score: g.awayScore,
-    home_score: g.homeScore,
-    winner: g.status === 'final' ? computeWinner(g) : null,
-  }));
+  // Jogos que o admin corrigiu manualmente nunca sao sobrescritos pela
+  // busca automatica - a API da NFL pode demorar a atualizar ou errar,
+  // e a correcao do admin tem que "grudar" ate ele mudar de novo.
+  const { data: lockedRows } = await supabase
+    .from('games')
+    .select('external_id')
+    .eq('week_id', weekId)
+    .eq('manually_corrected', true);
+  const lockedExternalIds = new Set((lockedRows ?? []).map((g) => g.external_id));
+
+  const rows = games
+    .filter((g) => !lockedExternalIds.has(g.externalId))
+    .map((g) => ({
+      week_id: weekId,
+      external_id: g.externalId,
+      away_team: g.awayTeam,
+      away_team_abbreviation: g.awayTeamAbbreviation,
+      away_team_logo: g.awayTeamLogo,
+      home_team: g.homeTeam,
+      home_team_abbreviation: g.homeTeamAbbreviation,
+      home_team_logo: g.homeTeamLogo,
+      game_date: g.gameDate,
+      game_time: g.gameTime,
+      venue: g.venue,
+      status: g.status,
+      away_score: g.awayScore,
+      home_score: g.homeScore,
+      winner: g.status === 'final' ? computeWinner(g) : null,
+    }));
+
+  if (rows.length === 0) return;
 
   // upsert por (week_id, external_id) - Regra 8: nunca duplica jogo.
   const { error } = await supabase.from('games').upsert(rows, { onConflict: 'week_id,external_id' });

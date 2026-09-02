@@ -56,6 +56,7 @@ export type Game = {
   home_score: number | null;
   winner: Winner | null;
   results_processed: boolean;
+  manually_corrected: boolean;
   created_at: string;
 };
 
