@@ -1,6 +1,7 @@
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import type { Game, Participant, Pick, SeasonResult, Week, WeeklyResult } from '@/types/database';
+import type { Game, Participant, Pick, PublicParticipant, SeasonResult, Week, WeeklyResult } from '@/types/database';
 import { checkAchievementsForWeek } from './achievements-service';
+import { toPublicParticipant } from './participants-service';
 
 interface RankRow {
   participantId: string;
@@ -172,7 +173,7 @@ async function recomputeSeasonResults(seasonId: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function getSeasonRanking(seasonId: string): Promise<(SeasonResult & { participant: Participant })[]> {
+export async function getSeasonRanking(seasonId: string): Promise<(SeasonResult & { participant: PublicParticipant })[]> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from('season_results')
@@ -180,10 +181,11 @@ export async function getSeasonRanking(seasonId: string): Promise<(SeasonResult 
     .eq('season_id', seasonId)
     .order('current_position', { ascending: true, nullsFirst: false });
   if (error) throw error;
-  return data as unknown as (SeasonResult & { participant: Participant })[];
+  const rows = data as unknown as (SeasonResult & { participant: Participant })[];
+  return rows.map((r) => ({ ...r, participant: toPublicParticipant(r.participant) }));
 }
 
-export async function getWeeklyRanking(weekId: string): Promise<(WeeklyResult & { participant: Participant })[]> {
+export async function getWeeklyRanking(weekId: string): Promise<(WeeklyResult & { participant: PublicParticipant })[]> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from('weekly_results')
@@ -191,5 +193,6 @@ export async function getWeeklyRanking(weekId: string): Promise<(WeeklyResult & 
     .eq('week_id', weekId)
     .order('weekly_position', { ascending: true, nullsFirst: false });
   if (error) throw error;
-  return data as unknown as (WeeklyResult & { participant: Participant })[];
+  const rows = data as unknown as (WeeklyResult & { participant: Participant })[];
+  return rows.map((r) => ({ ...r, participant: toPublicParticipant(r.participant) }));
 }

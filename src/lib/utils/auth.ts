@@ -43,7 +43,7 @@ async function sign(value: string): Promise<string> {
   return bytesToBase64Url(new Uint8Array(signature));
 }
 
-function constantTimeEqual(a: string, b: string): boolean {
+export function constantTimeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   let mismatch = 0;
   for (let i = 0; i < a.length; i++) {

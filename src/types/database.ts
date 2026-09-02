@@ -25,7 +25,16 @@ export type Participant = {
   active: boolean;
   display_order: number;
   auth_user_id: string | null;
+  password_salt: string | null;
+  password_hash: string | null;
   created_at: string;
+};
+
+// Formato exposto ao navegador - nunca inclui o hash/salt da senha
+// (secao 18: um participante nao pode ver nem indiretamente material
+// que ajude a adivinhar a senha de outro).
+export type PublicParticipant = Omit<Participant, 'password_salt' | 'password_hash'> & {
+  has_password: boolean;
 };
 
 export type Week = {

@@ -1,13 +1,14 @@
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import type { Participant, Season, SeasonResult } from '@/types/database';
+import { toPublicParticipant } from './participants-service';
+import type { Participant, PublicParticipant, Season, SeasonResult } from '@/types/database';
 
 export interface SeasonChampion {
   season: Season;
-  result: SeasonResult & { participant: Participant };
+  result: SeasonResult & { participant: PublicParticipant };
 }
 
 export interface HallOfFameRecord {
-  participant: Participant;
+  participant: PublicParticipant;
   value: number;
 }
 
@@ -40,7 +41,10 @@ export async function getHallOfFame(): Promise<HallOfFame> {
     .in('season_id', seasons.map((s) => s.id));
   if (resultsError) throw resultsError;
 
-  const typedResults = results as unknown as (SeasonResult & { participant: Participant })[];
+  const typedResults = (results as unknown as (SeasonResult & { participant: Participant })[]).map((r) => ({
+    ...r,
+    participant: toPublicParticipant(r.participant),
+  }));
 
   const champions: SeasonChampion[] = seasons
     .map((season) => {
@@ -54,7 +58,7 @@ export async function getHallOfFame(): Promise<HallOfFame> {
     .filter((r) => r.total_picks > 0)
     .sort((a, b) => b.accuracy_percentage - a.accuracy_percentage)[0];
 
-  const winsByParticipant = new Map<string, { participant: Participant; wins: number }>();
+  const winsByParticipant = new Map<string, { participant: PublicParticipant; wins: number }>();
   for (const r of typedResults) {
     const entry = winsByParticipant.get(r.participant_id) ?? { participant: r.participant, wins: 0 };
     entry.wins += r.weekly_wins;

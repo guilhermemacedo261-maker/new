@@ -3,13 +3,13 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ParticipantAvatar from '@/components/ParticipantAvatar';
-import type { Game, Participant, Pick } from '@/types/database';
+import type { Game, Pick, PublicParticipant } from '@/types/database';
 
 function AdminPicksInner() {
   const weekId = useSearchParams().get('weekId');
   const [games, setGames] = useState<Game[]>([]);
   const [picks, setPicks] = useState<Pick[]>([]);
-  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [participants, setParticipants] = useState<PublicParticipant[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,7 +21,7 @@ function AdminPicksInner() {
     ]).then(([gamesRes, picksRes, participantsRes]) => {
       setGames(gamesRes.games ?? []);
       setPicks(picksRes.picks ?? []);
-      setParticipants((participantsRes.participants ?? []).filter((p: Participant) => p.active));
+      setParticipants((participantsRes.participants ?? []).filter((p: PublicParticipant) => p.active));
       setLoading(false);
     });
   }, [weekId]);

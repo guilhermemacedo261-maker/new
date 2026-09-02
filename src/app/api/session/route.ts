@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createSignedToken, PARTICIPANT_COOKIE, readSignedToken } from '@/lib/utils/auth';
-import { getParticipant, listActiveParticipants } from '@/services/participants-service';
+import {
+  getParticipant,
+  listActiveParticipants,
+  toPublicParticipant,
+  verifyParticipantPassword,
+} from '@/services/participants-service';
 
 export async function GET() {
   const cookieStore = cookies();
@@ -11,13 +16,16 @@ export async function GET() {
   const participant = await getParticipant(participantId);
   if (!participant || !participant.active) return NextResponse.json({ participant: null });
 
-  return NextResponse.json({ participant });
+  return NextResponse.json({ participant: toPublicParticipant(participant) });
 }
 
 export async function POST(request: Request) {
-  const { participantId } = await request.json();
+  const { participantId, password } = await request.json();
   if (!participantId || typeof participantId !== 'string') {
     return NextResponse.json({ error: 'participantId obrigatorio' }, { status: 400 });
+  }
+  if (!password || typeof password !== 'string') {
+    return NextResponse.json({ error: 'Senha obrigatoria' }, { status: 400 });
   }
 
   const participants = await listActiveParticipants();
@@ -25,9 +33,17 @@ export async function POST(request: Request) {
   if (!participant) {
     return NextResponse.json({ error: 'Participante nao encontrado' }, { status: 404 });
   }
+  if (!participant.password_hash) {
+    return NextResponse.json({ error: 'Sua senha ainda nao foi cadastrada. Fale com o admin.' }, { status: 400 });
+  }
+
+  const valid = await verifyParticipantPassword(participant, password);
+  if (!valid) {
+    return NextResponse.json({ error: 'Senha incorreta' }, { status: 401 });
+  }
 
   const token = await createSignedToken(participant.id);
-  const response = NextResponse.json({ participant });
+  const response = NextResponse.json({ participant: toPublicParticipant(participant) });
   response.cookies.set(PARTICIPANT_COOKIE, token, {
     httpOnly: true,
     sameSite: 'lax',

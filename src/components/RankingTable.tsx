@@ -1,9 +1,9 @@
 import ParticipantAvatar from './ParticipantAvatar';
-import type { Participant } from '@/types/database';
+import type { PublicParticipant } from '@/types/database';
 
 export interface RankingRow {
   position: number | null;
-  participant: Participant;
+  participant: PublicParticipant;
   correct: number;
   wrong: number;
   accuracy: number;

@@ -1,5 +1,13 @@
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import type { Achievement, Participant, ParticipantAchievement, SeasonResult, WeeklyResult } from '@/types/database';
+import { toPublicParticipant } from './participants-service';
+import type {
+  Achievement,
+  Participant,
+  ParticipantAchievement,
+  PublicParticipant,
+  SeasonResult,
+  WeeklyResult,
+} from '@/types/database';
 
 export interface PlayerWeeklyPoint {
   weekNumber: number;
@@ -8,7 +16,7 @@ export interface PlayerWeeklyPoint {
 }
 
 export interface PlayerProfile {
-  participant: Participant;
+  participant: PublicParticipant;
   seasonResult: SeasonResult | null;
   weeklyPoints: PlayerWeeklyPoint[];
   bestWeek: PlayerWeeklyPoint | null;
@@ -67,7 +75,7 @@ export async function getPlayerProfile(participantId: string, seasonId: string):
     .order('earned_at', { ascending: false });
 
   return {
-    participant: participant as Participant,
+    participant: toPublicParticipant(participant as Participant),
     seasonResult: (seasonResult as SeasonResult) ?? null,
     weeklyPoints,
     bestWeek,

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { deactivateParticipant, updateParticipant } from '@/services/participants-service';
+import { deactivateParticipant, toPublicParticipant, updateParticipant } from '@/services/participants-service';
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const body = await request.json();
@@ -11,7 +11,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   };
 
   const participant = await updateParticipant(params.id, { name, photo_url, active, display_order });
-  return NextResponse.json({ participant });
+  return NextResponse.json({ participant: toPublicParticipant(participant) });
 }
 
 export async function DELETE(_request: Request, { params }: { params: { id: string } }) {

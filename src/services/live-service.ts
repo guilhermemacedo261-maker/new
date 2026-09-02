@@ -1,8 +1,9 @@
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import type { Game, Participant, Pick, Week } from '@/types/database';
+import { toPublicParticipant } from './participants-service';
+import type { Game, Participant, Pick, PublicParticipant, Week } from '@/types/database';
 
 export interface LiveParticipantStanding {
-  participant: Participant;
+  participant: PublicParticipant;
   correct: number;
   wrong: number;
   total: number;
@@ -49,7 +50,7 @@ export async function getLiveWeekStandings(week: Week): Promise<LiveWeekStanding
     }).length;
     const total = decidedPicks.length;
 
-    return { participant, correct, wrong: total - correct, total };
+    return { participant: toPublicParticipant(participant), correct, wrong: total - correct, total };
   });
 
   standings.sort((a, b) => b.correct - a.correct || a.wrong - b.wrong);

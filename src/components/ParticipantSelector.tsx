@@ -1,14 +1,14 @@
 'use client';
 
 import ParticipantAvatar from './ParticipantAvatar';
-import type { Participant } from '@/types/database';
+import type { PublicParticipant } from '@/types/database';
 
 export default function ParticipantSelector({
   participants,
   onSelect,
 }: {
-  participants: Participant[];
-  onSelect: (participant: Participant) => void;
+  participants: PublicParticipant[];
+  onSelect: (participant: PublicParticipant) => void;
 }) {
   return (
     <div>

@@ -5,19 +5,23 @@ import ParticipantSelector from '@/components/ParticipantSelector';
 import ParticipantAvatar from '@/components/ParticipantAvatar';
 import GameCard from '@/components/GameCard';
 import Countdown from '@/components/Countdown';
-import type { GameWithPick, Participant, TeamSide, Week } from '@/types/database';
+import type { GameWithPick, PublicParticipant, TeamSide, Week } from '@/types/database';
 
 type LoadState = 'loading' | 'ready' | 'error';
 
 export default function PicksPage() {
   const [loadState, setLoadState] = useState<LoadState>('loading');
-  const [participant, setParticipant] = useState<Participant | null>(null);
-  const [allParticipants, setAllParticipants] = useState<Participant[]>([]);
+  const [participant, setParticipant] = useState<PublicParticipant | null>(null);
+  const [allParticipants, setAllParticipants] = useState<PublicParticipant[]>([]);
   const [week, setWeek] = useState<Week | null>(null);
   const [games, setGames] = useState<GameWithPick[]>([]);
   const [saving, setSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [pendingParticipant, setPendingParticipant] = useState<PublicParticipant | null>(null);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [loggingIn, setLoggingIn] = useState(false);
 
   async function loadWeekAndGames() {
     const weekRes = await fetch('/api/weeks/current').then((r) => r.json());
@@ -45,16 +49,42 @@ export default function PicksPage() {
     })();
   }, []);
 
-  async function handleSelectParticipant(selected: Participant) {
-    setLoadState('loading');
-    await fetch('/api/session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ participantId: selected.id }),
-    });
-    setParticipant(selected);
-    await loadWeekAndGames();
-    setLoadState('ready');
+  function handleChooseName(selected: PublicParticipant) {
+    setPendingParticipant(selected);
+    setPasswordInput('');
+    setLoginError(null);
+  }
+
+  function handleCancelLogin() {
+    setPendingParticipant(null);
+    setPasswordInput('');
+    setLoginError(null);
+  }
+
+  async function handleConfirmPassword() {
+    if (!pendingParticipant) return;
+    setLoggingIn(true);
+    setLoginError(null);
+    try {
+      const res = await fetch('/api/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ participantId: pendingParticipant.id, password: passwordInput }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        setLoginError(body.error ?? 'Senha incorreta');
+        return;
+      }
+      setParticipant(body.participant);
+      setPendingParticipant(null);
+      setPasswordInput('');
+      setLoadState('loading');
+      await loadWeekAndGames();
+      setLoadState('ready');
+    } finally {
+      setLoggingIn(false);
+    }
   }
 
   async function handleSwitchParticipant() {
@@ -109,9 +139,39 @@ export default function PicksPage() {
   }
 
   if (!participant) {
+    if (pendingParticipant) {
+      return (
+        <div className="p-4 md:p-8 max-w-sm mx-auto text-center">
+          <ParticipantAvatar name={pendingParticipant.name} photoUrl={pendingParticipant.photo_url} size="lg" />
+          <h2 className="font-display text-2xl mt-3 mb-1">{pendingParticipant.name}</h2>
+          <p className="text-buteco-white/60 mb-6 text-sm">Digite sua senha pra palpitar.</p>
+          <input
+            type="password"
+            inputMode="numeric"
+            autoFocus
+            value={passwordInput}
+            onChange={(e) => setPasswordInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleConfirmPassword()}
+            placeholder="Senha"
+            className="w-full text-center text-xl tracking-[0.5em] rounded-xl bg-buteco-charcoal border border-white/10 px-4 py-3 outline-none focus:border-buteco-gold mb-3"
+          />
+          {loginError && <p className="text-buteco-red text-sm mb-3">{loginError}</p>}
+          <button
+            onClick={handleConfirmPassword}
+            disabled={loggingIn || !passwordInput}
+            className="w-full py-3 rounded-xl bg-buteco-red font-display text-lg mb-2 disabled:opacity-40"
+          >
+            {loggingIn ? 'ENTRANDO...' : 'ENTRAR'}
+          </button>
+          <button onClick={handleCancelLogin} className="text-xs text-buteco-white/50 underline">
+            Não é você? Voltar
+          </button>
+        </div>
+      );
+    }
     return (
       <div className="p-4 md:p-8">
-        <ParticipantSelector participants={allParticipants} onSelect={handleSelectParticipant} />
+        <ParticipantSelector participants={allParticipants} onSelect={handleChooseName} />
       </div>
     );
   }

@@ -1,5 +1,12 @@
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import type { Participant } from '@/types/database';
+import { hashPassword, verifyPassword } from '@/lib/utils/password';
+import type { Participant, PublicParticipant } from '@/types/database';
+
+/** Remove hash/salt antes de mandar o participante pro navegador (secao 18). */
+export function toPublicParticipant(p: Participant): PublicParticipant {
+  const { password_salt, password_hash, ...rest } = p;
+  return { ...rest, has_password: Boolean(password_hash) };
+}
 
 export async function listActiveParticipants(): Promise<Participant[]> {
   const supabase = getSupabaseAdmin();
@@ -61,4 +68,21 @@ export async function deactivateParticipant(id: string): Promise<void> {
   const supabase = getSupabaseAdmin();
   const { error } = await supabase.from('participants').update({ active: false }).eq('id', id);
   if (error) throw error;
+}
+
+/** Define/reseta a senha de um participante (admin). Retorna o hash - nunca a senha em texto puro. */
+export async function setParticipantPassword(id: string, plainPassword: string): Promise<void> {
+  const { salt, hash } = await hashPassword(plainPassword);
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from('participants')
+    .update({ password_salt: salt, password_hash: hash })
+    .eq('id', id);
+  if (error) throw error;
+}
+
+/** Confere a senha informada contra o hash salvo. Sem senha configurada = sempre nega. */
+export async function verifyParticipantPassword(participant: Participant, plainPassword: string): Promise<boolean> {
+  if (!participant.password_hash || !participant.password_salt) return false;
+  return verifyPassword(plainPassword, participant.password_salt, participant.password_hash);
 }
