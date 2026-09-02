@@ -100,5 +100,4 @@ Troque a implementação de `fetchNflWeek` em `src/lib/nfl/espn.ts` por outra fo
 
 ## 10. Limitações conhecidas do MVP
 
-- Login por senha individual não existe ainda - o participante só seleciona seu nome (o banco já está pronto para adicionar login: colunas `auth_user_id`/`pin_hash` em `participants`).
 - A API pública da ESPN não é documentada oficialmente e pode mudar sem aviso - o admin sempre pode corrigir jogos manualmente em `/admin/games` se algo vier errado.
