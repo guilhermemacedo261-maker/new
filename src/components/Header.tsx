@@ -3,6 +3,7 @@ import Link from 'next/link';
 const LINKS = [
   { href: '/', label: '🏠 Início' },
   { href: '/picks', label: '🏈 Fazer Palpites' },
+  { href: '/ao-vivo', label: '🔴 Ao Vivo' },
   { href: '/ranking', label: '🏆 Ranking' },
   { href: '/historico', label: '📊 Histórico' },
   { href: '/hall-da-fama', label: '👑 Hall da Fama' },
