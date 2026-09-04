@@ -5,12 +5,30 @@ import { formatCountdown } from '@/lib/utils/timezone';
 
 export default function Countdown({ closeAtIso, closedLabel = 'PALPITES ENCERRADOS' }: { closeAtIso: string; closedLabel?: string }) {
   const target = new Date(closeAtIso).getTime();
-  const [remaining, setRemaining] = useState<number>(() => target - Date.now());
+  // Comeca null (nunca calculado com Date.now() no primeiro render) pra
+  // renderizar identico no servidor e no cliente - calcular o valor real
+  // de cara causaria mismatch de hidratacao (o relogio do servidor nunca
+  // bate exatamente com o do navegador).
+  const [remaining, setRemaining] = useState<number | null>(null);
 
   useEffect(() => {
+    setRemaining(target - Date.now());
     const interval = setInterval(() => setRemaining(target - Date.now()), 1000);
     return () => clearInterval(interval);
   }, [target]);
+
+  if (remaining === null) {
+    return (
+      <div>
+        <p className="text-xs uppercase tracking-widest text-buteco-white/50 mb-1">Palpites encerram em</p>
+        <div className="flex gap-2 font-display text-3xl text-buteco-gold">
+          <span>--h</span>
+          <span>--min</span>
+          <span>--s</span>
+        </div>
+      </div>
+    );
+  }
 
   if (remaining <= 0) {
     return (

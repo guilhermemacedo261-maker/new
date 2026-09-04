@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import ParticipantAvatar from '@/components/ParticipantAvatar';
 import Countdown from '@/components/Countdown';
+import HomeBackgroundCarousel from '@/components/HomeBackgroundCarousel';
 import { getActiveSeason, getCurrentWeek, listSeasonWeeks } from '@/services/weeks-service';
 import { listActiveParticipants } from '@/services/participants-service';
 import { listGamesForWeek } from '@/services/games-service';
@@ -42,6 +43,8 @@ export default async function HomePage() {
 
   return (
     <div className="p-4 md:p-8 space-y-8">
+      <HomeBackgroundCarousel groupPhotoUrl={season?.group_photo_url ?? null} games={games} />
+
       <section className="text-center pt-6">
         <h1 className="font-display text-4xl md:text-5xl tracking-wide">🏈 NFL DE BUTECO</h1>
         <p className="text-buteco-white/60 mt-2">O bolão de palpites mais disputado do buteco.</p>

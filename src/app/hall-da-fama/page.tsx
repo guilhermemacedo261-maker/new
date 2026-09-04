@@ -4,7 +4,7 @@ import { getHallOfFame } from '@/services/hall-of-fame-service';
 export const dynamic = 'force-dynamic';
 
 export default async function HallDaFamaPage() {
-  const { champions, mostCorrectInSeason, bestAccuracy, mostWeeklyWins } = await getHallOfFame();
+  const { champions, lanternas, mostCorrectInSeason, bestAccuracy, mostWeeklyWins } = await getHallOfFame();
 
   return (
     <div className="p-4 md:p-8">
@@ -15,15 +15,41 @@ export default async function HallDaFamaPage() {
           Nenhuma temporada encerrada ainda. Volte quando o primeiro campeão do NFL DE BUTECO for coroado! 🏆
         </p>
       ) : (
-        <div className="grid sm:grid-cols-2 gap-4 mb-10">
+        <div className="grid sm:grid-cols-2 gap-4 mb-6">
           {champions.map(({ season, result }) => (
             <div key={season.id} className="bg-buteco-charcoal rounded-2xl p-6 text-center">
-              <p className="font-display text-buteco-gold">🏆 {season.year}</p>
+              <p className="font-display text-buteco-gold">🏆 CAMPEÃO {season.year}</p>
               <div className="flex justify-center my-2">
-                <ParticipantAvatar name={result.participant.name} photoUrl={result.participant.photo_url} size="lg" ring />
+                <ParticipantAvatar
+                  name={result.participant.name}
+                  photoUrl={season.champion_photo_url ?? result.participant.photo_url}
+                  size="lg"
+                  ring
+                  ringColor="gold"
+                />
               </div>
               <p className="font-display text-xl uppercase">{result.participant.name}</p>
-              <p className="text-buteco-white/60 text-sm">{result.correct_picks} acertos</p>
+              <p className="text-buteco-white/60 text-sm">
+                {result.correct_picks} acertos - {result.wrong_picks} erros
+              </p>
+            </div>
+          ))}
+          {lanternas.map(({ season, result }) => (
+            <div key={season.id} className="bg-buteco-charcoal rounded-2xl p-6 text-center">
+              <p className="font-display text-buteco-red">🤡 BOBO DA TEMPORADA {season.year}</p>
+              <div className="flex justify-center my-2">
+                <ParticipantAvatar
+                  name={result.participant.name}
+                  photoUrl={season.lanterna_photo_url ?? result.participant.photo_url}
+                  size="lg"
+                  ring
+                  ringColor="red"
+                />
+              </div>
+              <p className="font-display text-xl uppercase">{result.participant.name}</p>
+              <p className="text-buteco-white/60 text-sm">
+                {result.correct_picks} acertos - {result.wrong_picks} erros
+              </p>
             </div>
           ))}
         </div>

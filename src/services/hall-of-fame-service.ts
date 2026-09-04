@@ -14,6 +14,7 @@ export interface HallOfFameRecord {
 
 export interface HallOfFame {
   champions: SeasonChampion[];
+  lanternas: SeasonChampion[];
   mostCorrectInSeason: HallOfFameRecord | null;
   bestAccuracy: HallOfFameRecord | null;
   mostWeeklyWins: HallOfFameRecord | null;
@@ -32,7 +33,7 @@ export async function getHallOfFame(): Promise<HallOfFame> {
 
   const seasons = (finishedSeasons as Season[]) ?? [];
   if (seasons.length === 0) {
-    return { champions: [], mostCorrectInSeason: null, bestAccuracy: null, mostWeeklyWins: null };
+    return { champions: [], lanternas: [], mostCorrectInSeason: null, bestAccuracy: null, mostWeeklyWins: null };
   }
 
   const { data: results, error: resultsError } = await supabase
@@ -53,6 +54,17 @@ export async function getHallOfFame(): Promise<HallOfFame> {
     })
     .filter((c): c is SeasonChampion => c !== null);
 
+  // "Bobo" da temporada (secao 33) - a lanterna e quem terminou na ultima
+  // posicao entre quem de fato palpitou naquela temporada.
+  const lanternas: SeasonChampion[] = seasons
+    .map((season) => {
+      const seasonRows = typedResults.filter((r) => r.season_id === season.id && r.total_picks > 0);
+      if (seasonRows.length === 0) return null;
+      const lanterna = [...seasonRows].sort((a, b) => (b.current_position ?? 0) - (a.current_position ?? 0))[0];
+      return { season, result: lanterna };
+    })
+    .filter((c): c is SeasonChampion => c !== null);
+
   const mostCorrect = [...typedResults].sort((a, b) => b.correct_picks - a.correct_picks)[0];
   const bestAccuracy = [...typedResults]
     .filter((r) => r.total_picks > 0)
@@ -68,6 +80,7 @@ export async function getHallOfFame(): Promise<HallOfFame> {
 
   return {
     champions,
+    lanternas,
     mostCorrectInSeason: mostCorrect ? { participant: mostCorrect.participant, value: mostCorrect.correct_picks } : null,
     bestAccuracy: bestAccuracy ? { participant: bestAccuracy.participant, value: bestAccuracy.accuracy_percentage } : null,
     mostWeeklyWins: mostWins ? { participant: mostWins.participant, value: mostWins.wins } : null,

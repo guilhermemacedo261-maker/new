@@ -1,6 +1,24 @@
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import type { Season, Week } from '@/types/database';
 
+export async function listSeasons(): Promise<Season[]> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase.from('seasons').select('*').order('year', { ascending: false });
+  if (error) throw error;
+  return (data as Season[]) ?? [];
+}
+
+/** Define as fotos comemorativas do campeao/bobo daquela temporada, exibidas no Hall da Fama. */
+export async function updateSeasonPhotos(
+  seasonId: string,
+  patch: { champion_photo_url?: string | null; lanterna_photo_url?: string | null; group_photo_url?: string | null }
+): Promise<Season> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase.from('seasons').update(patch).eq('id', seasonId).select('*').single();
+  if (error) throw error;
+  return data as Season;
+}
+
 export async function getActiveSeason(): Promise<Season | null> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase.from('seasons').select('*').eq('status', 'active').maybeSingle();
