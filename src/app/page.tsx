@@ -51,10 +51,13 @@ export default async function HomePage() {
       </section>
 
       {week ? (
-        <section className="bg-buteco-charcoal rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+        <section
+          className="rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6"
+          style={{ textShadow: '0 2px 10px rgba(0,0,0,0.9)' }}
+        >
           <div>
             <p className="font-display text-3xl text-buteco-gold">SEMANA {week.week_number}</p>
-            <p className="text-sm text-buteco-white/60 mt-1">
+            <p className="text-sm text-buteco-white/80 mt-1">
               {games.length} jogo{games.length === 1 ? '' : 's'} nesta rodada
             </p>
           </div>
@@ -67,7 +70,7 @@ export default async function HomePage() {
           </Link>
         </section>
       ) : (
-        <section className="bg-buteco-charcoal rounded-2xl p-6 text-center text-buteco-white/60">
+        <section className="rounded-2xl p-6 text-center text-buteco-white/80" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.9)' }}>
           Nenhuma rodada aberta agora. 🍺 Toda terça-feira liberamos os jogos da semana!
         </section>
       )}
@@ -119,14 +122,20 @@ export default async function HomePage() {
 
       {games.length > 0 && (
         <section>
-          <h2 className="font-display text-xl mb-3">Próximos jogos</h2>
+          <h2 className="font-display text-xl mb-3" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.9)' }}>
+            Próximos jogos
+          </h2>
           <div className="space-y-2">
             {games.slice(0, 5).map((game) => (
-              <div key={game.id} className="flex items-center justify-between bg-buteco-charcoal rounded-xl px-4 py-3 text-sm">
+              <div
+                key={game.id}
+                className="flex items-center justify-between rounded-xl px-4 py-3 text-sm border border-white/10"
+                style={{ textShadow: '0 2px 10px rgba(0,0,0,0.9)' }}
+              >
                 <span>
                   {game.away_team_abbreviation} @ {game.home_team_abbreviation}
                 </span>
-                <span className="text-buteco-white/50">{formatDateBR(game.game_time, { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                <span className="text-buteco-white/70">{formatDateBR(game.game_time, { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
               </div>
             ))}
           </div>
