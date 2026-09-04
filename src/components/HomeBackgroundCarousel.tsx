@@ -5,33 +5,36 @@ import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import type { Game } from '@/types/database';
 
-const SLIDE_DURATION_MS = 2000;
+const PHOTO_DURATION_MS = 3000;
+const GAME_DURATION_MS = 2000;
 
 type Slide =
-  | { type: 'photo'; url: string }
+  | { type: 'photo'; url: string; durationMs: number }
   | {
       type: 'game';
       awayLogo: string | null;
       homeLogo: string | null;
       awayAbbr: string;
       homeAbbr: string;
+      durationMs: number;
     };
 
 /**
- * Plano de fundo da tela inicial: foto do grupo por 2s, depois os
+ * Plano de fundo da tela inicial: foto do grupo por 5s, depois os
  * confrontos da semana, 2s cada, em loop, com fade entre eles. Fica
  * atras do conteudo normal da home (z-index negativo) com um degrade
  * escuro por cima pra nao atrapalhar a leitura.
  */
 export default function HomeBackgroundCarousel({ groupPhotoUrl, games }: { groupPhotoUrl: string | null; games: Game[] }) {
   const slides: Slide[] = [
-    ...(groupPhotoUrl ? [{ type: 'photo' as const, url: groupPhotoUrl }] : []),
+    ...(groupPhotoUrl ? [{ type: 'photo' as const, url: groupPhotoUrl, durationMs: PHOTO_DURATION_MS }] : []),
     ...games.map((g) => ({
       type: 'game' as const,
       awayLogo: g.away_team_logo,
       homeLogo: g.home_team_logo,
       awayAbbr: g.away_team_abbreviation,
       homeAbbr: g.home_team_abbreviation,
+      durationMs: GAME_DURATION_MS,
     })),
   ];
 
@@ -42,10 +45,11 @@ export default function HomeBackgroundCarousel({ groupPhotoUrl, games }: { group
 
   useEffect(() => {
     if (slides.length <= 1) return;
-    const id = setInterval(() => setIndex((i) => (i + 1) % slides.length), SLIDE_DURATION_MS);
-    return () => clearInterval(id);
+    const duration = slides[index % slides.length].durationMs;
+    const id = setTimeout(() => setIndex((i) => (i + 1) % slides.length), duration);
+    return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slides.length]);
+  }, [index, slides.length]);
 
   if (!mounted || slides.length === 0) return null;
 
@@ -63,7 +67,7 @@ export default function HomeBackgroundCarousel({ groupPhotoUrl, games }: { group
           style={{ opacity: i === index ? 1 : 0 }}
         >
           {slide.type === 'photo' ? (
-            <Image src={slide.url} alt="" fill className="object-cover" priority={i === 0} />
+            <Image src={slide.url} alt="" fill className="object-contain object-center" priority={i === 0} />
           ) : (
             <div className="w-full h-full flex items-center justify-center gap-10">
               {slide.awayLogo && (
@@ -77,7 +81,7 @@ export default function HomeBackgroundCarousel({ groupPhotoUrl, games }: { group
           )}
         </div>
       ))}
-      <div className="absolute inset-0 bg-gradient-to-b from-buteco-black/70 via-buteco-black/85 to-buteco-black" />
+      <div className="absolute inset-0 bg-gradient-to-b from-buteco-black/20 via-buteco-black/35 to-buteco-black/70" />
     </div>,
     document.body
   );

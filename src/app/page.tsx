@@ -45,9 +45,9 @@ export default async function HomePage() {
     <div className="p-4 md:p-8 space-y-8">
       <HomeBackgroundCarousel groupPhotoUrl={season?.group_photo_url ?? null} games={games} />
 
-      <section className="text-center pt-6">
+      <section className="text-center pt-6" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.8)' }}>
         <h1 className="font-display text-4xl md:text-5xl tracking-wide">🏈 NFL DE BUTECO</h1>
-        <p className="text-buteco-white/60 mt-2">O bolão de palpites mais disputado do buteco.</p>
+        <p className="text-buteco-white/80 mt-2">O bolão de palpites mais disputado do buteco.</p>
       </section>
 
       {week ? (

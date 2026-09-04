@@ -51,7 +51,7 @@ function AdminGamesInner() {
               <p className="text-[11px] text-buteco-gold mb-2">🔒 Corrigido manualmente - não é mais atualizado automaticamente</p>
             )}
             <div className="grid sm:grid-cols-2 gap-3">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <input
                   defaultValue={game.away_team_abbreviation}
                   onBlur={(e) => handleSave(game, { away_team_abbreviation: e.target.value })}
@@ -65,20 +65,20 @@ function AdminGamesInner() {
                 />
                 {saving === game.id && <span className="text-xs text-buteco-white/40">salvando...</span>}
               </div>
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-2 text-sm flex-wrap">
                 <input
                   type="number"
                   defaultValue={game.away_score ?? ''}
                   onBlur={(e) => handleSave(game, { away_score: e.target.value ? Number(e.target.value) : null })}
                   placeholder="Placar visitante"
-                  className="w-24 bg-buteco-black rounded px-2 py-1"
+                  className="w-20 bg-buteco-black rounded px-2 py-1"
                 />
                 <input
                   type="number"
                   defaultValue={game.home_score ?? ''}
                   onBlur={(e) => handleSave(game, { home_score: e.target.value ? Number(e.target.value) : null })}
                   placeholder="Placar mandante"
-                  className="w-24 bg-buteco-black rounded px-2 py-1"
+                  className="w-20 bg-buteco-black rounded px-2 py-1"
                 />
                 <select
                   defaultValue={game.status}
