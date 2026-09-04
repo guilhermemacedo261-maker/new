@@ -15,6 +15,9 @@ export type Season = {
   year: number;
   name: string;
   status: SeasonStatus;
+  champion_photo_url: string | null;
+  lanterna_photo_url: string | null;
+  group_photo_url: string | null;
   created_at: string;
 };
 

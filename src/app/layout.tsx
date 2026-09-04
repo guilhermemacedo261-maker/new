@@ -16,9 +16,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-BR">
       <body className={`${inter.variable} ${anton.variable} font-body bg-buteco-black text-buteco-white min-h-screen pb-16 md:pb-0`}>
-        <Header />
-        <main className="max-w-5xl mx-auto">{children}</main>
-        <BottomNav />
+        <div className="relative z-10">
+          <Header />
+          <main className="max-w-5xl mx-auto">{children}</main>
+          <BottomNav />
+        </div>
       </body>
     </html>
   );

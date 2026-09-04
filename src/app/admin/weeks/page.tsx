@@ -113,30 +113,32 @@ export default function AdminWeeksPage() {
       <div className="space-y-2">
         {weeks.map((week) => (
           <div key={week.id} className="bg-buteco-charcoal rounded-xl p-4">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="flex-1">
+            <div className="flex items-center gap-3 mb-3 flex-wrap">
+              <div className="flex-1 min-w-[140px]">
                 <p className="font-display">Semana {week.week_number}</p>
                 <p className="text-xs text-buteco-white/50">
                   Prazo atual:{' '}
                   {formatDateBR(week.picks_close_at, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
-              <span className="text-xs px-3 py-1 rounded-full bg-white/10">{STATUS_LABEL[week.status]}</span>
-              <Link href={`/admin/games?weekId=${week.id}`} className="text-xs underline text-buteco-white/60">
-                Jogos
-              </Link>
-              <Link href={`/admin/picks?weekId=${week.id}`} className="text-xs underline text-buteco-white/60">
-                Palpites
-              </Link>
-              {week.status === 'open' ? (
-                <button onClick={() => handleAction(week.id, 'close')} className="text-xs px-3 py-1 rounded-full bg-buteco-red/20 text-buteco-red">
-                  Encerrar
-                </button>
-              ) : (
-                <button onClick={() => handleAction(week.id, 'reopen')} className="text-xs px-3 py-1 rounded-full bg-buteco-green/20 text-buteco-green">
-                  Reabrir
-                </button>
-              )}
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="text-xs px-3 py-1 rounded-full bg-white/10">{STATUS_LABEL[week.status]}</span>
+                <Link href={`/admin/games?weekId=${week.id}`} className="text-xs underline text-buteco-white/60">
+                  Jogos
+                </Link>
+                <Link href={`/admin/picks?weekId=${week.id}`} className="text-xs underline text-buteco-white/60">
+                  Palpites
+                </Link>
+                {week.status === 'open' ? (
+                  <button onClick={() => handleAction(week.id, 'close')} className="text-xs px-3 py-1 rounded-full bg-buteco-red/20 text-buteco-red">
+                    Encerrar
+                  </button>
+                ) : (
+                  <button onClick={() => handleAction(week.id, 'reopen')} className="text-xs px-3 py-1 rounded-full bg-buteco-green/20 text-buteco-green">
+                    Reabrir
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="grid sm:grid-cols-2 gap-3 text-xs">

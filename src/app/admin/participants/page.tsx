@@ -114,8 +114,8 @@ export default function AdminParticipantsPage() {
       <div className="space-y-2">
         {participants.map((p) => (
           <div key={p.id} className="bg-buteco-charcoal rounded-xl p-3">
-            <div className="flex items-center gap-3">
-              <label className="cursor-pointer">
+            <div className="flex items-center gap-3 flex-wrap">
+              <label className="cursor-pointer shrink-0">
                 <ParticipantAvatar name={p.name} photoUrl={p.photo_url} size="md" />
                 <input
                   type="file"
@@ -127,29 +127,31 @@ export default function AdminParticipantsPage() {
               <input
                 defaultValue={p.name}
                 onBlur={(e) => handleRename(p, e.target.value)}
-                className="flex-1 bg-transparent border-b border-white/10 focus:border-buteco-gold outline-none py-1"
+                className="flex-1 min-w-[120px] bg-transparent border-b border-white/10 focus:border-buteco-gold outline-none py-1"
               />
-              <span
-                className={`text-[11px] px-2 py-1 rounded-full font-semibold ${
-                  p.has_password ? 'bg-buteco-green/20 text-buteco-green' : 'bg-buteco-red/20 text-buteco-red'
-                }`}
-              >
-                {p.has_password ? '🔒 Com senha' : '⚠️ Sem senha'}
-              </span>
-              <button
-                onClick={() => handleGeneratePassword(p)}
-                className="text-xs px-3 py-1 rounded-full font-semibold bg-buteco-gold/20 text-buteco-gold"
-              >
-                {p.has_password ? 'Redefinir senha' : 'Gerar senha'}
-              </button>
-              <button
-                onClick={() => handleToggleActive(p)}
-                className={`text-xs px-3 py-1 rounded-full font-semibold ${
-                  p.active ? 'bg-buteco-green/20 text-buteco-green' : 'bg-white/10 text-buteco-white/50'
-                }`}
-              >
-                {p.active ? 'Ativo' : 'Inativo'}
-              </button>
+              <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+                <span
+                  className={`text-[11px] px-2 py-1 rounded-full font-semibold ${
+                    p.has_password ? 'bg-buteco-green/20 text-buteco-green' : 'bg-buteco-red/20 text-buteco-red'
+                  }`}
+                >
+                  {p.has_password ? '🔒 Com senha' : '⚠️ Sem senha'}
+                </span>
+                <button
+                  onClick={() => handleGeneratePassword(p)}
+                  className="text-xs px-3 py-1 rounded-full font-semibold bg-buteco-gold/20 text-buteco-gold"
+                >
+                  {p.has_password ? 'Redefinir senha' : 'Gerar senha'}
+                </button>
+                <button
+                  onClick={() => handleToggleActive(p)}
+                  className={`text-xs px-3 py-1 rounded-full font-semibold ${
+                    p.active ? 'bg-buteco-green/20 text-buteco-green' : 'bg-white/10 text-buteco-white/50'
+                  }`}
+                >
+                  {p.active ? 'Ativo' : 'Inativo'}
+                </button>
+              </div>
             </div>
             {revealedPasswords[p.id] && (
               <p className="mt-2 text-xs text-buteco-white/70">
