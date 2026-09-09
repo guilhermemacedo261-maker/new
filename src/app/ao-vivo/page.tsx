@@ -4,8 +4,8 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ParticipantAvatar from '@/components/ParticipantAvatar';
 import Countdown from '@/components/Countdown';
-import type { Week } from '@/types/database';
-import type { LiveParticipantStanding } from '@/services/live-service';
+import type { PublicParticipant, Week } from '@/types/database';
+import type { LiveGameRow, LiveParticipantStanding } from '@/services/live-service';
 
 const POLL_INTERVAL_MS = 20000;
 
@@ -17,6 +17,8 @@ interface LiveResponse {
   standings?: LiveParticipantStanding[];
   leader?: LiveParticipantStanding | null;
   trailer?: LiveParticipantStanding | null;
+  participants?: PublicParticipant[];
+  games?: LiveGameRow[];
 }
 
 function AoVivoInner() {
@@ -126,7 +128,7 @@ function AoVivoInner() {
             </div>
           )}
 
-          <div className="bg-buteco-charcoal rounded-2xl divide-y divide-white/5">
+          <div className="bg-buteco-charcoal rounded-2xl divide-y divide-white/5 mb-8">
             {(data.standings ?? []).map((s, i) => (
               <div key={s.participant.id} className="flex items-center gap-3 px-4 py-3">
                 <span className="w-6 text-center text-buteco-white/40 text-sm">{i + 1}º</span>
@@ -138,6 +140,53 @@ function AoVivoInner() {
               </div>
             ))}
           </div>
+
+          <section>
+            <h2 className="font-display text-lg mb-3">Jogos e palpites</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs border-collapse">
+                <thead>
+                  <tr>
+                    <th className="sticky left-0 bg-buteco-black text-left px-2 py-2">Jogo</th>
+                    {(data.participants ?? []).map((p) => (
+                      <th key={p.id} className="px-2 py-2 min-w-[70px]">
+                        <div className="flex flex-col items-center gap-1">
+                          <ParticipantAvatar name={p.name} photoUrl={p.photo_url} size="sm" />
+                          <span className="truncate max-w-[60px]">{p.name}</span>
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(data.games ?? []).map((game) => (
+                    <tr key={game.id} className="border-t border-white/5">
+                      <td className="sticky left-0 bg-buteco-black px-2 py-2 font-semibold whitespace-nowrap">
+                        {game.awayAbbreviation} x {game.homeAbbreviation}
+                        {game.status === 'in_progress' && <span className="ml-1 text-buteco-red">●</span>}
+                      </td>
+                      {(data.participants ?? []).map((p) => {
+                        const pick = game.picksByParticipantId[p.id];
+                        let bg = 'bg-buteco-card';
+                        if (pick?.isCorrect === true) bg = 'bg-buteco-green/70';
+                        if (pick?.isCorrect === false) bg = 'bg-buteco-red/70';
+                        const label = pick
+                          ? pick.selectedTeam === 'home'
+                            ? game.homeAbbreviation
+                            : game.awayAbbreviation
+                          : '-';
+                        return (
+                          <td key={p.id} className={`px-2 py-2 text-center ${bg}`}>
+                            {label}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
         </>
       )}
     </div>
