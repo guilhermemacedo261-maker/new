@@ -13,6 +13,34 @@ export async function listGamesForWeek(weekId: string): Promise<Game[]> {
   return (data as Game[]) ?? [];
 }
 
+/**
+ * Existe algum jogo de uma semana ativa (open/closed) que ja deveria ter
+ * comecado (game_time no passado) e ainda nao foi marcado como "final"?
+ * Usado pelo cron de placar ao vivo pra decidir se vale a pena gastar
+ * credito da Netlify batendo na API da ESPN - roda a cada 5min o dia
+ * inteiro, mas so busca de verdade quando ha jogo pendente de resultado.
+ * Baseado no horario real de cada jogo (nao num horario fixo tipo "so
+ * quinta/domingo/segunda a noite"), entao cobre qualquer jogo fora do
+ * padrao (Sabado, feriado, horario internacional etc.).
+ */
+export async function hasLikelyLiveGames(): Promise<boolean> {
+  const supabase = getSupabaseAdmin();
+  const { data: weeks, error: weeksError } = await supabase.from('weeks').select('id').in('status', ['open', 'closed']);
+  if (weeksError) throw weeksError;
+  const weekIds = (weeks ?? []).map((w) => w.id);
+  if (weekIds.length === 0) return false;
+
+  const { data, error } = await supabase
+    .from('games')
+    .select('id')
+    .in('week_id', weekIds)
+    .neq('status', 'final')
+    .lte('game_time', new Date().toISOString())
+    .limit(1);
+  if (error) throw error;
+  return (data ?? []).length > 0;
+}
+
 export type GameCorrection = Partial<
   Pick<
     Game,

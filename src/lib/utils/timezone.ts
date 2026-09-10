@@ -50,69 +50,6 @@ export function brasiliaDate(
   return new Date(approx.getTime() - offset * 60000);
 }
 
-/** Data/hora do instante informado (padrao: agora), com os campos ja expressos em America/Sao_Paulo. */
-export function nowInBrasilia(reference = new Date()): {
-  date: Date;
-  year: number;
-  month: number;
-  day: number;
-  hour: number;
-  minute: number;
-  weekday: number; // 0 = domingo ... 4 = quinta
-} {
-  const now = reference;
-  const dtf = new Intl.DateTimeFormat('en-US', {
-    timeZone: APP_TIMEZONE,
-    hourCycle: 'h23',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    weekday: 'short',
-  });
-  const parts = dtf.formatToParts(now).reduce<Record<string, string>>((acc, p) => {
-    acc[p.type] = p.value;
-    return acc;
-  }, {});
-  const weekdayMap: Record<string, number> = {
-    Sun: 0,
-    Mon: 1,
-    Tue: 2,
-    Wed: 3,
-    Thu: 4,
-    Fri: 5,
-    Sat: 6,
-  };
-  return {
-    date: now,
-    year: Number(parts.year),
-    month: Number(parts.month),
-    day: Number(parts.day),
-    hour: Number(parts.hour),
-    minute: Number(parts.minute),
-    weekday: weekdayMap[parts.weekday] ?? now.getUTCDay(),
-  };
-}
-
-/**
- * Aproximacao de "provavelmente tem jogo da NFL rolando agora" - cobre
- * quinta e segunda a noite (TNF/MNF, ~20h-2h Brasilia, o "2h" cobrindo o
- * jogo que vira o dia) e domingo a tarde/noite (~14h-2h Brasilia). Usada
- * pelo cron de placar ao vivo pra so gastar credito da Netlify buscando
- * na API da NFL quando de fato pode ter algo novo pra atualizar.
- */
-export function isLikelyGameWindow(reference = new Date()): boolean {
-  const { weekday, hour } = nowInBrasilia(reference);
-  if (weekday === 4 && hour >= 20) return true; // quinta a noite
-  if (weekday === 5 && hour <= 2) return true; // vira-noite de quinta
-  if (weekday === 0 && hour >= 14) return true; // domingo
-  if (weekday === 1 && hour <= 2) return true; // vira-noite de domingo
-  if (weekday === 1 && hour >= 20) return true; // segunda a noite
-  if (weekday === 2 && hour <= 2) return true; // vira-noite de segunda
-  return false;
-}
-
 /** Dado um instante qualquer da semana, calcula a proxima quinta-feira 16:00 em Brasilia (fechamento de palpites). */
 export function nextThursday16h(reference = new Date()): Date {
   const dtf = new Intl.DateTimeFormat('en-US', { timeZone: APP_TIMEZONE, weekday: 'short' });
