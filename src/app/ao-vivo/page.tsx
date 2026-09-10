@@ -162,8 +162,17 @@ function AoVivoInner() {
                   {(data.games ?? []).map((game) => (
                     <tr key={game.id} className="border-t border-white/5">
                       <td className="sticky left-0 bg-buteco-black px-2 py-2 font-semibold whitespace-nowrap">
-                        {game.awayAbbreviation} x {game.homeAbbreviation}
-                        {game.status === 'in_progress' && <span className="ml-1 text-buteco-red">●</span>}
+                        {game.status === 'scheduled' ? (
+                          <span>
+                            {game.awayAbbreviation} x {game.homeAbbreviation}
+                          </span>
+                        ) : (
+                          <span>
+                            {game.awayAbbreviation} {game.awayScore ?? 0} x {game.homeScore ?? 0}{' '}
+                            {game.homeAbbreviation}
+                          </span>
+                        )}
+                        {game.status === 'in_progress' && <span className="ml-1 text-buteco-red animate-pulse">●</span>}
                       </td>
                       {(data.participants ?? []).map((p) => {
                         const pick = game.picksByParticipantId[p.id];
