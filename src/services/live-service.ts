@@ -20,6 +20,22 @@ export interface LiveGameRow {
   picksByParticipantId: Record<string, { selectedTeam: TeamSide; isCorrect: boolean | null }>;
 }
 
+/**
+ * Quem estaria ganhando um jogo agora - usado pra colorir os palpites
+ * antes do jogo acabar (Regra do usuario: "quero que mude durante o
+ * jogo"). Em jogo encerrado usa o vencedor oficial; em andamento, deriva
+ * do placar parcial (empate no meio do jogo = ninguem "ganhando" ainda,
+ * fica neutro ate desempatar). E sempre provisorio ate o jogo virar
+ * "final" - o placar pode mudar de mao a qualquer momento.
+ */
+function deriveLiveWinner(game: Game): Winner | null {
+  if (game.status === 'final') return game.winner;
+  if (game.status !== 'in_progress') return null;
+  if (game.home_score === null || game.away_score === null) return null;
+  if (game.home_score === game.away_score) return null;
+  return game.home_score > game.away_score ? 'home' : 'away';
+}
+
 export interface LiveWeekStandings {
   week: Week;
   totalGames: number;
@@ -52,16 +68,20 @@ export async function getLiveWeekStandings(week: Week): Promise<LiveWeekStanding
   const allGames = (games as Game[]) ?? [];
   const allPicks = (picks as Pick[]) ?? [];
   const finalGames = allGames.filter((g) => g.status === 'final' && g.winner);
-  const finalGameById = new Map(finalGames.map((g) => [g.id, g]));
+
+  const liveWinnerByGameId = new Map(allGames.map((g) => [g.id, deriveLiveWinner(g)]));
+  const decidedGameIds = new Set(
+    allGames.filter((g) => liveWinnerByGameId.get(g.id) !== null).map((g) => g.id)
+  );
 
   const publicParticipants = ((participants as Participant[]) ?? []).map(toPublicParticipant);
 
   const gameRows: LiveGameRow[] = allGames.map((game) => {
+    const liveWinner = liveWinnerByGameId.get(game.id) ?? null;
     const picksByParticipantId: LiveGameRow['picksByParticipantId'] = {};
     for (const pick of allPicks) {
       if (pick.game_id !== game.id) continue;
-      const isCorrect =
-        game.status === 'final' && game.winner ? game.winner !== 'tie' && pick.selected_team === game.winner : null;
+      const isCorrect = liveWinner ? liveWinner !== 'tie' && pick.selected_team === liveWinner : null;
       picksByParticipantId[pick.participant_id] = { selectedTeam: pick.selected_team, isCorrect };
     }
     return {
@@ -77,12 +97,10 @@ export async function getLiveWeekStandings(week: Week): Promise<LiveWeekStanding
   });
 
   const standings: LiveParticipantStanding[] = ((participants as Participant[]) ?? []).map((participant) => {
-    const decidedPicks = allPicks.filter(
-      (p) => p.participant_id === participant.id && finalGameById.has(p.game_id)
-    );
+    const decidedPicks = allPicks.filter((p) => p.participant_id === participant.id && decidedGameIds.has(p.game_id));
     const correct = decidedPicks.filter((p) => {
-      const game = finalGameById.get(p.game_id)!;
-      return game.winner !== 'tie' && p.selected_team === game.winner;
+      const liveWinner = liveWinnerByGameId.get(p.game_id);
+      return liveWinner !== 'tie' && p.selected_team === liveWinner;
     }).length;
     const total = decidedPicks.length;
 
@@ -92,7 +110,7 @@ export async function getLiveWeekStandings(week: Week): Promise<LiveWeekStanding
   standings.sort((a, b) => b.correct - a.correct || a.wrong - b.wrong);
 
   const withPicks = standings.filter((s) => s.total > 0);
-  const hasResults = finalGames.length > 0 && withPicks.length > 0;
+  const hasResults = decidedGameIds.size > 0 && withPicks.length > 0;
 
   const leader = hasResults ? withPicks[0] : null;
   const trailer = hasResults && withPicks.length > 1 ? withPicks[withPicks.length - 1] : null;

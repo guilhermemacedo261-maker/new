@@ -176,9 +176,10 @@ function AoVivoInner() {
                       </td>
                       {(data.participants ?? []).map((p) => {
                         const pick = game.picksByParticipantId[p.id];
+                        const isFinal = game.status === 'final';
                         let bg = 'bg-buteco-card';
-                        if (pick?.isCorrect === true) bg = 'bg-buteco-green/70';
-                        if (pick?.isCorrect === false) bg = 'bg-buteco-red/70';
+                        if (pick?.isCorrect === true) bg = isFinal ? 'bg-buteco-green/70' : 'bg-buteco-green/30';
+                        if (pick?.isCorrect === false) bg = isFinal ? 'bg-buteco-red/70' : 'bg-buteco-red/30';
                         const label = pick
                           ? pick.selectedTeam === 'home'
                             ? game.homeAbbreviation
