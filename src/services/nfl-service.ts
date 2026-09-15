@@ -130,12 +130,41 @@ export interface SyncResult {
 }
 
 /**
+ * Descobre qual semana devemos sincronizar quando o chamador nao informa
+ * season/week explicitamente (cron de terca e botao "Atualizar jogos
+ * agora"). Antes isso pedia pra ESPN "a semana atual" e confiava que o
+ * numero batia com alguma semana "upcoming" nossa - se a ESPN
+ * demorasse/errasse a virada de semana, a promocao falhava calada (nenhuma
+ * semana nova, nenhum erro visivel). Agora usamos nossa propria fonte de
+ * verdade: a semana "upcoming" de menor numero da temporada ativa e que
+ * deveria abrir agora, ja que as semanas sao sempre promovidas em ordem.
+ */
+async function resolveNextWeekToSync(): Promise<{ season?: number; week?: number }> {
+  const supabase = getSupabaseAdmin();
+  const { data: season } = await supabase.from('seasons').select('*').eq('status', 'active').maybeSingle();
+  if (!season) return {};
+
+  const { data: nextWeek } = await supabase
+    .from('weeks')
+    .select('week_number')
+    .eq('season_id', season.id)
+    .eq('status', 'upcoming')
+    .order('week_number', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!nextWeek) return {};
+
+  return { season: season.year, week: nextWeek.week_number };
+}
+
+/**
  * Busca a semana atual/proxima da NFL na API e sincroniza jogos + rodada
  * no banco. Chamada pelo cron de terca-feira e pelo botao "Atualizar jogos
  * agora" do admin. Idempotente: pode rodar varias vezes sem duplicar nada.
  */
 export async function syncNflWeek(params: { season?: number; week?: number } = {}): Promise<SyncResult> {
-  const { info, games } = await fetchNflWeek(params);
+  const target = params.season || params.week ? params : await resolveNextWeekToSync();
+  const { info, games } = await fetchNflWeek(target);
   const season = await ensureSeason(info.season);
   const week = await ensureWeek(season.id, info.weekNumber, {
     picksCloseAt: nextThursday16h(new Date()),
