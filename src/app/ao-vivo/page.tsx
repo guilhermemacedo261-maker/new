@@ -15,8 +15,8 @@ interface LiveResponse {
   totalGames?: number;
   gamesFinal?: number;
   standings?: LiveParticipantStanding[];
-  leader?: LiveParticipantStanding | null;
-  trailer?: LiveParticipantStanding | null;
+  leaders?: LiveParticipantStanding[];
+  trailers?: LiveParticipantStanding[];
   participants?: PublicParticipant[];
   games?: LiveGameRow[];
 }
@@ -116,15 +116,24 @@ function AoVivoInner() {
             {lastUpdated && ` · atualizado às ${lastUpdated.toLocaleTimeString('pt-BR')}`}
           </p>
 
-          {!data.leader ? (
+          {!data.leaders || data.leaders.length === 0 ? (
             <div className="bg-buteco-charcoal rounded-2xl p-8 text-center text-buteco-white/60 mb-8">
-              Nenhum jogo terminou ainda. Assim que o primeiro resultado sair, o líder e a lanterna da rodada aparecem
-              aqui. 🍺
+              A rodada ainda está rolando. O campeão (e o bobo) só aparecem aqui quando todos os jogos terminarem. 🍺
             </div>
           ) : (
             <div className="grid sm:grid-cols-2 gap-4 mb-8">
-              <StandoutCard standing={data.leader} kind="leader" />
-              {data.trailer && <StandoutCard standing={data.trailer} kind="trailer" />}
+              <div className="space-y-3">
+                {data.leaders.map((s) => (
+                  <StandoutCard key={s.participant.id} standing={s} kind="leader" />
+                ))}
+              </div>
+              {data.trailers && data.trailers.length > 0 && (
+                <div className="space-y-3">
+                  {data.trailers.map((s) => (
+                    <StandoutCard key={s.participant.id} standing={s} kind="trailer" />
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

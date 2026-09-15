@@ -70,14 +70,16 @@ export async function checkAchievementsForWeek(weekId: string, seasonId: string)
     }
   }
 
-  const { data: leader } = await supabase
+  // Sem .maybeSingle() de proposito - se 2 participantes empatarem em
+  // 1o lugar na temporada, os dois ganham o titulo (nunca escolhe 1 so
+  // arbitrariamente entre empatados).
+  const { data: leaders } = await supabase
     .from('season_results')
     .select('participant_id')
     .eq('season_id', seasonId)
-    .eq('current_position', 1)
-    .maybeSingle();
+    .eq('current_position', 1);
 
-  if (leader) {
+  for (const leader of leaders ?? []) {
     grants.push({ participant_id: leader.participant_id, achievement_id: codes.lider, week_id: weekId, season_id: null });
   }
 
@@ -89,16 +91,22 @@ export async function checkSeasonChampion(seasonId: string): Promise<void> {
   const supabase = getSupabaseAdmin();
   const codes = await getAchievementIds();
 
-  const { data: champion } = await supabase
+  // Sem .maybeSingle() de proposito - campeoes empatados na temporada
+  // viram GOAT juntos, nenhum e escolhido arbitrariamente.
+  const { data: champions } = await supabase
     .from('season_results')
     .select('participant_id')
     .eq('season_id', seasonId)
-    .eq('current_position', 1)
-    .maybeSingle();
+    .eq('current_position', 1);
 
-  if (!champion) return;
+  if (!champions || champions.length === 0) return;
 
-  await grantAll([
-    { participant_id: champion.participant_id, achievement_id: codes.goat, week_id: null, season_id: seasonId },
-  ]);
+  await grantAll(
+    champions.map((champion) => ({
+      participant_id: champion.participant_id,
+      achievement_id: codes.goat,
+      week_id: null,
+      season_id: seasonId,
+    }))
+  );
 }
