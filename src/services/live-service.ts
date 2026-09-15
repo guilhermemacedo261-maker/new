@@ -119,10 +119,12 @@ export async function getLiveWeekStandings(week: Week): Promise<LiveWeekStanding
   standings.sort((a, b) => b.correct - a.correct || a.wrong - b.wrong);
 
   const withPicks = standings.filter((s) => s.total > 0);
-  // So revela o campeao/bobo da rodada quando TODOS os jogos terminam -
-  // antes disso e so um resultado parcial, nao o resultado oficial da rodada.
-  const roundIsOver = allGames.length > 0 && finalGames.length === allGames.length;
-  const hasResults = roundIsOver && withPicks.length > 0;
+  // O "lider da rodada" e sempre provisorio (pode trocar de mao a
+  // qualquer momento) e aparece assim que houver algum jogo decidido -
+  // diferente de um "campeao" oficial, que so faria sentido depois que
+  // a rodada inteira terminasse (e essa distincao nao existe na tela,
+  // so o lider/lanterna ao vivo mesmo).
+  const hasResults = decidedGameIds.size > 0 && withPicks.length > 0;
 
   const leaders = hasResults ? groupTiedAtEdge(withPicks, 'best') : [];
   const allTiedTogether = leaders.length === withPicks.length;
