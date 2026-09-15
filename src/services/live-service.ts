@@ -41,19 +41,10 @@ export interface LiveWeekStandings {
   totalGames: number;
   gamesFinal: number;
   standings: LiveParticipantStanding[];
-  /** Lider(es) da rodada - so preenchido quando TODOS os jogos da semana terminam (Regra do usuario: nao anunciar campeao antes do fim da rodada). Mais de um nome em caso de empate. */
-  leaders: LiveParticipantStanding[];
-  /** Lanterna(s) da rodada - mesma regra do lider: so depois do fim, e todo mundo empatado no ultimo lugar aparece. */
-  trailers: LiveParticipantStanding[];
+  leader: LiveParticipantStanding | null;
+  trailer: LiveParticipantStanding | null;
   participants: PublicParticipant[];
   games: LiveGameRow[];
-}
-
-/** Todos os participantes empatados no melhor (ou pior) resultado do grupo - nunca escolhe 1 arbitrariamente entre empatados. */
-function groupTiedAtEdge(sorted: LiveParticipantStanding[], edge: 'best' | 'worst'): LiveParticipantStanding[] {
-  if (sorted.length === 0) return [];
-  const reference = edge === 'best' ? sorted[0] : sorted[sorted.length - 1];
-  return sorted.filter((s) => s.correct === reference.correct && s.wrong === reference.wrong);
 }
 
 /**
@@ -119,24 +110,18 @@ export async function getLiveWeekStandings(week: Week): Promise<LiveWeekStanding
   standings.sort((a, b) => b.correct - a.correct || a.wrong - b.wrong);
 
   const withPicks = standings.filter((s) => s.total > 0);
-  // O "lider da rodada" e sempre provisorio (pode trocar de mao a
-  // qualquer momento) e aparece assim que houver algum jogo decidido -
-  // diferente de um "campeao" oficial, que so faria sentido depois que
-  // a rodada inteira terminasse (e essa distincao nao existe na tela,
-  // so o lider/lanterna ao vivo mesmo).
   const hasResults = decidedGameIds.size > 0 && withPicks.length > 0;
 
-  const leaders = hasResults ? groupTiedAtEdge(withPicks, 'best') : [];
-  const allTiedTogether = leaders.length === withPicks.length;
-  const trailers = hasResults && !allTiedTogether ? groupTiedAtEdge(withPicks, 'worst') : [];
+  const leader = hasResults ? withPicks[0] : null;
+  const trailer = hasResults && withPicks.length > 1 ? withPicks[withPicks.length - 1] : null;
 
   return {
     week,
     totalGames: allGames.length,
     gamesFinal: finalGames.length,
     standings,
-    leaders,
-    trailers,
+    leader,
+    trailer,
     participants: publicParticipants,
     games: gameRows,
   };

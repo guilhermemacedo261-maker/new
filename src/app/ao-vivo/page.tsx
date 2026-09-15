@@ -15,8 +15,8 @@ interface LiveResponse {
   totalGames?: number;
   gamesFinal?: number;
   standings?: LiveParticipantStanding[];
-  leaders?: LiveParticipantStanding[];
-  trailers?: LiveParticipantStanding[];
+  leader?: LiveParticipantStanding | null;
+  trailer?: LiveParticipantStanding | null;
   participants?: PublicParticipant[];
   games?: LiveGameRow[];
 }
@@ -116,33 +116,16 @@ function AoVivoInner() {
             {lastUpdated && ` · atualizado às ${lastUpdated.toLocaleTimeString('pt-BR')}`}
           </p>
 
-          {!data.leaders || data.leaders.length === 0 ? (
+          {!data.leader ? (
             <div className="bg-buteco-charcoal rounded-2xl p-8 text-center text-buteco-white/60 mb-8">
               Nenhum jogo terminou ainda. Assim que o primeiro resultado sair, o líder e a lanterna da rodada aparecem
-              aqui (é sempre provisório - pode trocar até o fim). 🍺
+              aqui. 🍺
             </div>
           ) : (
-            <>
-              {(data.gamesFinal ?? 0) < (data.totalGames ?? 0) && (
-                <p className="text-center text-xs text-buteco-gold/70 mb-3">
-                  ⚠️ Provisório - ainda tem jogo rolando, isso pode trocar até o fim da rodada.
-                </p>
-              )}
-              <div className="grid sm:grid-cols-2 gap-4 mb-8">
-                <div className="space-y-3">
-                  {data.leaders.map((s) => (
-                    <StandoutCard key={s.participant.id} standing={s} kind="leader" />
-                  ))}
-                </div>
-                {data.trailers && data.trailers.length > 0 && (
-                  <div className="space-y-3">
-                    {data.trailers.map((s) => (
-                      <StandoutCard key={s.participant.id} standing={s} kind="trailer" />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </>
+            <div className="grid sm:grid-cols-2 gap-4 mb-8">
+              <StandoutCard standing={data.leader} kind="leader" />
+              {data.trailer && <StandoutCard standing={data.trailer} kind="trailer" />}
+            </div>
           )}
 
           <div className="bg-buteco-charcoal rounded-2xl divide-y divide-white/5 mb-8">
