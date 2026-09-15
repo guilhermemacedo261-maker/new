@@ -1,5 +1,6 @@
 import type {
   Achievement,
+  FundTransaction,
   Game,
   Participant,
   ParticipantAchievement,
@@ -7,6 +8,7 @@ import type {
   Season,
   SeasonResult,
   Week,
+  WeeklyPayment,
   WeeklyResult,
 } from './database';
 
@@ -36,6 +38,8 @@ export interface Database {
       season_results: TableDef<SeasonResult>;
       achievements: TableDef<Achievement>;
       participant_achievements: TableDef<ParticipantAchievement>;
+      weekly_payments: TableDef<WeeklyPayment>;
+      fund_transactions: TableDef<FundTransaction>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

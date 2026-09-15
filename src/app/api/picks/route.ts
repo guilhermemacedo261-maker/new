@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { PARTICIPANT_COOKIE, readSignedToken } from '@/lib/utils/auth';
-import { InvalidPicksError, PicksClosedError, submitPicks } from '@/services/picks-service';
+import { InvalidPicksError, PaymentPendingError, PicksClosedError, submitPicks } from '@/services/picks-service';
 
 export async function POST(request: Request) {
   const participantId = await readSignedToken(cookies().get(PARTICIPANT_COOKIE)?.value);
@@ -26,6 +26,9 @@ export async function POST(request: Request) {
   } catch (err) {
     if (err instanceof PicksClosedError) {
       return NextResponse.json({ error: err.message }, { status: 403 });
+    }
+    if (err instanceof PaymentPendingError) {
+      return NextResponse.json({ error: err.message, paymentPending: true }, { status: 402 });
     }
     if (err instanceof InvalidPicksError) {
       return NextResponse.json({ error: err.message }, { status: 400 });

@@ -6,6 +6,7 @@ const LINKS = [
   { href: '/ao-vivo', label: '🔴 Ao Vivo' },
   { href: '/ranking', label: '🏆 Ranking' },
   { href: '/historico', label: '📊 Histórico' },
+  { href: '/caixa', label: '🐷 Caixa' },
   { href: '/hall-da-fama', label: '👑 Hall da Fama' },
 ];
 

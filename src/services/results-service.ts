@@ -1,6 +1,7 @@
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { refreshGameResults } from './nfl-service';
 import { processWeekResults } from './ranking-service';
+import { generateWeeklyCharges } from './payments-service';
 import type { Week } from '@/types/database';
 
 /**
@@ -25,6 +26,8 @@ export async function refreshResultsForActiveWeeks(): Promise<{ processed: strin
 
     if (allFinal && week.status === 'closed') {
       await supabase.from('weeks').update({ status: 'finished' }).eq('id', week.id);
+      // Gera a cobranca Pix da rodada (vaquinha) agora que a posicao final de cada um esta definida.
+      await generateWeeklyCharges(week.id);
     }
 
     processed.push(week.id);

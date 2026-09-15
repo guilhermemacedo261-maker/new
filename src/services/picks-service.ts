@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { getPendingPaymentForParticipant } from './payments-service';
 import type { Game, GameWithPick, TeamSide, Week } from '@/types/database';
 
 export class PicksClosedError extends Error {
@@ -8,6 +9,13 @@ export class PicksClosedError extends Error {
 }
 
 export class InvalidPicksError extends Error {}
+
+/** Lancada quando o participante deve a vaquinha de uma rodada anterior (Regra da vaquinha - so libera os palpites apos o Pix). */
+export class PaymentPendingError extends Error {
+  constructor(public amount: number) {
+    super(`Voce tem um pagamento pendente de R$ ${amount.toFixed(2)} da rodada anterior. Pague pra liberar os palpites.`);
+  }
+}
 
 /** Retorna os jogos da semana com o palpite do PROPRIO participante (nunca dos outros - secao 18). */
 export async function getWeekGamesWithMyPicks(weekId: string, participantId: string): Promise<GameWithPick[]> {
@@ -60,6 +68,11 @@ export async function submitPicks(weekId: string, participantId: string, picks: 
   if (weekError) throw weekError;
   if (!isPicksWindowOpen(week as Week)) {
     throw new PicksClosedError();
+  }
+
+  const pendingPayment = await getPendingPaymentForParticipant(participantId);
+  if (pendingPayment) {
+    throw new PaymentPendingError(pendingPayment.amount);
   }
 
   const { data: games, error: gamesError } = await supabase.from('games').select('id').eq('week_id', weekId);

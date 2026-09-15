@@ -9,6 +9,7 @@ const SECTIONS = [
   { href: '/admin/weeks', label: '📅 Semanas', desc: 'Ver rodadas, criar, encerrar, reabrir' },
   { href: '/admin/games', label: '🏈 Jogos', desc: 'Corrigir times, horários e placares' },
   { href: '/admin/picks', label: '📋 Palpites', desc: 'Ver os palpites de todos' },
+  { href: '/admin/pagamentos', label: '💰 Pagamentos', desc: 'Cobranças Pix da vaquinha e caixa da festa' },
   { href: '/admin/imagem', label: '📷 Imagem dos Palpites', desc: 'Gerar e baixar a imagem da semana' },
   { href: '/admin/hall-da-fama', label: '👑 Hall da Fama', desc: 'Foto do campeão e do bobo de cada temporada' },
 ];

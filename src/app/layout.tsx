@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, Anton } from 'next/font/google';
 import Header from '@/components/Header';
-import BottomNav from '@/components/BottomNav';
+import SideNav from '@/components/SideNav';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-body' });
@@ -15,11 +15,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
-      <body className={`${inter.variable} ${anton.variable} font-body bg-buteco-black text-buteco-white min-h-screen pb-16 md:pb-0`}>
+      <body className={`${inter.variable} ${anton.variable} font-body bg-buteco-black text-buteco-white min-h-screen pl-14 md:pl-0`}>
         <div className="relative z-10">
           <Header />
           <main className="max-w-5xl mx-auto">{children}</main>
-          <BottomNav />
+          <SideNav />
         </div>
       </body>
     </html>

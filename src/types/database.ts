@@ -130,3 +130,30 @@ export type ParticipantAchievement = {
 export type GameWithPick = Game & {
   my_pick: TeamSide | null;
 };
+
+export type PaymentStatus = 'pending' | 'paid' | 'waived';
+
+export type WeeklyPayment = {
+  id: string;
+  week_id: string;
+  participant_id: string;
+  amount: number;
+  status: PaymentStatus;
+  pix_payment_id: string | null;
+  pix_copia_cola: string | null;
+  pix_qr_base64: string | null;
+  paid_at: string | null;
+  created_at: string;
+};
+
+export type FundTransactionType = 'contribution' | 'expense';
+
+export type FundTransaction = {
+  id: string;
+  type: FundTransactionType;
+  amount: number;
+  description: string | null;
+  participant_id: string | null;
+  week_id: string | null;
+  created_at: string;
+};

@@ -5,9 +5,11 @@ import ParticipantSelector from '@/components/ParticipantSelector';
 import ParticipantAvatar from '@/components/ParticipantAvatar';
 import GameCard from '@/components/GameCard';
 import Countdown from '@/components/Countdown';
-import type { GameWithPick, PublicParticipant, TeamSide, Week } from '@/types/database';
+import type { GameWithPick, PublicParticipant, TeamSide, Week, WeeklyPayment } from '@/types/database';
 
 type LoadState = 'loading' | 'ready' | 'error';
+type PendingPayment = WeeklyPayment & { week: Week };
+const PAYMENT_POLL_INTERVAL_MS = 5000;
 
 export default function PicksPage() {
   const [loadState, setLoadState] = useState<LoadState>('loading');
@@ -22,6 +24,18 @@ export default function PicksPage() {
   const [passwordInput, setPasswordInput] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loggingIn, setLoggingIn] = useState(false);
+  const [payment, setPayment] = useState<PendingPayment | null>(null);
+  const [copiedPix, setCopiedPix] = useState(false);
+
+  async function checkPaymentThenLoad() {
+    const paymentRes = await fetch('/api/payments/me').then((r) => r.json());
+    if (paymentRes.payment) {
+      setPayment(paymentRes.payment);
+      return;
+    }
+    setPayment(null);
+    await loadWeekAndGames();
+  }
 
   async function loadWeekAndGames() {
     const weekRes = await fetch('/api/weeks/current').then((r) => r.json());
@@ -41,12 +55,13 @@ export default function PicksPage() {
         ]);
         setAllParticipants(participantsRes.participants ?? []);
         setParticipant(sessionRes.participant ?? null);
-        if (sessionRes.participant) await loadWeekAndGames();
+        if (sessionRes.participant) await checkPaymentThenLoad();
         setLoadState('ready');
       } catch {
         setLoadState('error');
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function handleChooseName(selected: PublicParticipant) {
@@ -80,7 +95,7 @@ export default function PicksPage() {
       setPendingParticipant(null);
       setPasswordInput('');
       setLoadState('loading');
-      await loadWeekAndGames();
+      await checkPaymentThenLoad();
       setLoadState('ready');
     } finally {
       setLoggingIn(false);
@@ -93,7 +108,21 @@ export default function PicksPage() {
     setGames([]);
     setWeek(null);
     setSavedMessage(null);
+    setPayment(null);
   }
+
+  useEffect(() => {
+    if (!payment) return;
+    const interval = setInterval(async () => {
+      const res = await fetch('/api/payments/me').then((r) => r.json());
+      if (!res.payment) {
+        setPayment(null);
+        await loadWeekAndGames();
+      }
+    }, PAYMENT_POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payment]);
 
   function handlePick(gameId: string, side: TeamSide) {
     setSavedMessage(null);
@@ -172,6 +201,50 @@ export default function PicksPage() {
     return (
       <div className="p-4 md:p-8">
         <ParticipantSelector participants={allParticipants} onSelect={handleChooseName} />
+      </div>
+    );
+  }
+
+  if (payment) {
+    return (
+      <div className="p-4 md:p-8 max-w-sm mx-auto text-center">
+        <ParticipantAvatar name={participant.name} photoUrl={participant.photo_url} size="lg" />
+        <h2 className="font-display text-2xl mt-3 mb-1">Antes de palpitar...</h2>
+        <p className="text-buteco-white/60 mb-6 text-sm">
+          Você ficou devendo <strong className="text-buteco-gold">R$ {Number(payment.amount).toFixed(2)}</strong> da
+          Semana {payment.week.week_number} pra vaquinha da festa de fim de ano. Pague o Pix abaixo pra liberar os
+          palpites dessa rodada.
+        </p>
+
+        {payment.pix_qr_base64 ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`data:image/png;base64,${payment.pix_qr_base64}`}
+              alt="QR Code Pix"
+              className="w-48 h-48 mx-auto rounded-xl border border-white/10 mb-4 bg-white p-2"
+            />
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(payment.pix_copia_cola ?? '');
+                setCopiedPix(true);
+                setTimeout(() => setCopiedPix(false), 2000);
+              }}
+              className="w-full py-3 rounded-xl bg-buteco-green font-display text-lg mb-3"
+            >
+              {copiedPix ? 'CÓDIGO COPIADO ✅' : 'COPIAR CÓDIGO PIX'}
+            </button>
+          </>
+        ) : (
+          <p className="text-buteco-white/50 text-sm mb-4 bg-buteco-charcoal rounded-xl p-4">
+            O Pix ainda está sendo gerado. Se demorar, chama o admin pra liberar manualmente.
+          </p>
+        )}
+
+        <p className="text-xs text-buteco-white/40">Assim que o Pix cair, isso libera sozinho (verificando a cada poucos segundos).</p>
+        <button onClick={handleSwitchParticipant} className="mt-6 text-xs text-buteco-white/50 underline">
+          Não é você?
+        </button>
       </div>
     );
   }
