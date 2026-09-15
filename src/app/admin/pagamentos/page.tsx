@@ -5,7 +5,8 @@ import ParticipantAvatar from '@/components/ParticipantAvatar';
 import type { PublicParticipant, Week, WeeklyPayment } from '@/types/database';
 
 type PaymentRow = WeeklyPayment & { participant: PublicParticipant };
-type FundBalance = { total: number };
+type ContributionRow = { participant: PublicParticipant; totalPaid: number; weeksPaid: number };
+type FundBalance = { total: number; contributions: ContributionRow[] };
 
 const STATUS_LABEL: Record<WeeklyPayment['status'], string> = {
   pending: 'Pendente',
@@ -54,7 +55,7 @@ export default function AdminPagamentosPage() {
   function loadFund() {
     fetch('/api/fund')
       .then((r) => r.json())
-      .then((res) => setFund({ total: res.total ?? 0 }));
+      .then((res) => setFund({ total: res.total ?? 0, contributions: res.contributions ?? [] }));
   }
 
   async function runAction(paymentId: string, action: 'paid' | 'waived' | 'regenerate') {
@@ -93,9 +94,31 @@ export default function AdminPagamentosPage() {
   return (
     <div className="p-4 md:p-8 max-w-3xl">
       <h1 className="font-display text-2xl mb-2">Pagamentos (vaquinha)</h1>
-      <p className="text-sm text-buteco-white/50 mb-6">
+      <p className="text-sm text-buteco-white/50 mb-1">
         Caixa acumulado: <span className="text-buteco-gold font-semibold">R$ {(fund?.total ?? 0).toFixed(2)}</span>
       </p>
+      <p className="text-xs text-buteco-white/40 mb-6">
+        Você sempre pode liberar alguém manualmente com &quot;Marcar pago&quot; (ex: quem pagou em espécie fora do
+        app) - não depende do Pix cair pelo Mercado Pago.
+      </p>
+
+      {fund && fund.contributions.length > 0 && (
+        <>
+          <h2 className="font-display text-lg mb-3">Quanto cada um já contribuiu</h2>
+          <div className="bg-buteco-charcoal rounded-2xl divide-y divide-white/5 mb-8">
+            {fund.contributions.map((c) => (
+              <div key={c.participant.id} className="flex items-center gap-3 px-4 py-3">
+                <ParticipantAvatar name={c.participant.name} photoUrl={c.participant.photo_url} size="sm" />
+                <div className="flex-1">
+                  <p className="font-semibold text-sm">{c.participant.name}</p>
+                  <p className="text-xs text-buteco-white/50">{c.weeksPaid} rodada(s) paga(s)</p>
+                </div>
+                <span className="font-display text-buteco-gold">R$ {c.totalPaid.toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       <select
         value={weekId}

@@ -203,12 +203,19 @@ export async function listPaymentsForWeek(weekId: string): Promise<(WeeklyPaymen
   return rows.map((r) => ({ ...r, participant: toPublicParticipant(r.participant) }));
 }
 
+export interface ContributionSummary {
+  participant: PublicParticipant;
+  totalPaid: number;
+  weeksPaid: number;
+}
+
 export interface FundBalance {
   total: number;
   transactions: (FundTransaction & { participant: PublicParticipant | null })[];
+  contributions: ContributionSummary[];
 }
 
-/** Extrato do caixa da festa - soma de contribuicoes menos despesas lancadas pelo admin. */
+/** Extrato do caixa da festa - soma de contribuicoes menos despesas lancadas pelo admin, mais quanto cada um ja contribuiu no total. */
 export async function getFundBalance(): Promise<FundBalance> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
@@ -220,9 +227,29 @@ export async function getFundBalance(): Promise<FundBalance> {
   const rows = (data ?? []) as unknown as (FundTransaction & { participant: Participant | null })[];
   const total = rows.reduce((sum, t) => sum + (t.type === 'contribution' ? Number(t.amount) : -Number(t.amount)), 0);
 
+  const contributionsByParticipant = new Map<string, { participant: Participant; totalPaid: number; weeksPaid: number }>();
+  for (const row of rows) {
+    if (row.type !== 'contribution' || !row.participant) continue;
+    const existing = contributionsByParticipant.get(row.participant.id);
+    if (existing) {
+      existing.totalPaid += Number(row.amount);
+      existing.weeksPaid += 1;
+    } else {
+      contributionsByParticipant.set(row.participant.id, {
+        participant: row.participant,
+        totalPaid: Number(row.amount),
+        weeksPaid: 1,
+      });
+    }
+  }
+  const contributions = Array.from(contributionsByParticipant.values())
+    .map((c) => ({ participant: toPublicParticipant(c.participant), totalPaid: c.totalPaid, weeksPaid: c.weeksPaid }))
+    .sort((a, b) => b.totalPaid - a.totalPaid);
+
   return {
     total,
     transactions: rows.map((t) => ({ ...t, participant: t.participant ? toPublicParticipant(t.participant) : null })),
+    contributions,
   };
 }
 

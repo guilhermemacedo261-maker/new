@@ -5,10 +5,12 @@ import ParticipantAvatar from '@/components/ParticipantAvatar';
 import type { FundTransaction, PublicParticipant } from '@/types/database';
 
 type TransactionRow = FundTransaction & { participant: PublicParticipant | null };
+type ContributionRow = { participant: PublicParticipant; totalPaid: number; weeksPaid: number };
 
 export default function CaixaPage() {
   const [total, setTotal] = useState(0);
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
+  const [contributions, setContributions] = useState<ContributionRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,6 +19,7 @@ export default function CaixaPage() {
       .then((res) => {
         setTotal(res.total ?? 0);
         setTransactions(res.transactions ?? []);
+        setContributions(res.contributions ?? []);
         setLoading(false);
       });
   }, []);
@@ -32,6 +35,24 @@ export default function CaixaPage() {
         <p className="text-xs text-buteco-white/50 mb-1">Saldo acumulado</p>
         <p className="font-display text-4xl text-buteco-gold">R$ {total.toFixed(2)}</p>
       </div>
+
+      {contributions.length > 0 && (
+        <>
+          <h2 className="font-display text-lg mb-3">Quanto cada um já contribuiu</h2>
+          <div className="bg-buteco-charcoal rounded-2xl divide-y divide-white/5 mb-8">
+            {contributions.map((c) => (
+              <div key={c.participant.id} className="flex items-center gap-3 px-4 py-3">
+                <ParticipantAvatar name={c.participant.name} photoUrl={c.participant.photo_url} size="sm" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold">{c.participant.name}</p>
+                  <p className="text-xs text-buteco-white/50">{c.weeksPaid} rodada(s) paga(s)</p>
+                </div>
+                <span className="font-display text-buteco-gold">R$ {c.totalPaid.toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       <h2 className="font-display text-lg mb-3">Extrato</h2>
       {loading ? (
