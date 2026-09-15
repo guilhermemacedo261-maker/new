@@ -41,10 +41,19 @@ export interface LiveWeekStandings {
   totalGames: number;
   gamesFinal: number;
   standings: LiveParticipantStanding[];
-  leader: LiveParticipantStanding | null;
-  trailer: LiveParticipantStanding | null;
+  /** Lider(es) da rodada - mais de um nome em caso de empate (nunca escolhe 1 arbitrariamente). */
+  leaders: LiveParticipantStanding[];
+  /** Lanterna(s) da rodada - mesma regra do lider. */
+  trailers: LiveParticipantStanding[];
   participants: PublicParticipant[];
   games: LiveGameRow[];
+}
+
+/** Todos os participantes empatados no melhor (ou pior) resultado do grupo. */
+function groupTiedAtEdge(sorted: LiveParticipantStanding[], edge: 'best' | 'worst'): LiveParticipantStanding[] {
+  if (sorted.length === 0) return [];
+  const reference = edge === 'best' ? sorted[0] : sorted[sorted.length - 1];
+  return sorted.filter((s) => s.correct === reference.correct && s.wrong === reference.wrong);
 }
 
 /**
@@ -112,16 +121,17 @@ export async function getLiveWeekStandings(week: Week): Promise<LiveWeekStanding
   const withPicks = standings.filter((s) => s.total > 0);
   const hasResults = decidedGameIds.size > 0 && withPicks.length > 0;
 
-  const leader = hasResults ? withPicks[0] : null;
-  const trailer = hasResults && withPicks.length > 1 ? withPicks[withPicks.length - 1] : null;
+  const leaders = hasResults ? groupTiedAtEdge(withPicks, 'best') : [];
+  const allTiedTogether = leaders.length === withPicks.length;
+  const trailers = hasResults && !allTiedTogether ? groupTiedAtEdge(withPicks, 'worst') : [];
 
   return {
     week,
     totalGames: allGames.length,
     gamesFinal: finalGames.length,
     standings,
-    leader,
-    trailer,
+    leaders,
+    trailers,
     participants: publicParticipants,
     games: gameRows,
   };

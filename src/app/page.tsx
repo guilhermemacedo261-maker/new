@@ -7,8 +7,18 @@ import { listActiveParticipants } from '@/services/participants-service';
 import { listGamesForWeek } from '@/services/games-service';
 import { getSeasonRanking, getWeeklyRanking } from '@/services/ranking-service';
 import { formatDateBR } from '@/lib/utils/timezone';
+import type { PublicParticipant, SeasonResult } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
+
+type SeasonRankingRow = SeasonResult & { participant: PublicParticipant };
+
+/** Todos os participantes empatados no melhor (ou pior) resultado do grupo - nunca escolhe 1 arbitrariamente. */
+function groupTiedAtEdge(sortedByPosition: SeasonRankingRow[], edge: 'best' | 'worst'): SeasonRankingRow[] {
+  if (sortedByPosition.length === 0) return [];
+  const reference = edge === 'best' ? sortedByPosition[0] : sortedByPosition[sortedByPosition.length - 1];
+  return sortedByPosition.filter((r) => r.current_position === reference.current_position);
+}
 
 export default async function HomePage() {
   const [season, week, participants] = await Promise.all([
@@ -20,22 +30,27 @@ export default async function HomePage() {
   const games = week ? await listGamesForWeek(week.id) : [];
   const ranking = season ? await getSeasonRanking(season.id) : [];
   const top5 = ranking.filter((r) => r.total_picks > 0).slice(0, 5);
-  const leader = top5[0] ?? null;
-  const runnerUp = top5[1] ?? null;
+  const withPicks = ranking.filter((r) => r.total_picks > 0);
 
-  let weeklyChampion: { name: string; correct: number; total: number; weekNumber: number } | null = null;
+  const leaders = groupTiedAtEdge(withPicks, 'best');
+  const allTiedTogether = leaders.length === withPicks.length;
+  const trailers = allTiedTogether ? [] : groupTiedAtEdge(withPicks, 'worst');
+  const runnerUp = leaders.length === 1 ? (withPicks.find((r) => r.current_position !== leaders[0].current_position) ?? null) : null;
+
+  let weeklyChampions: { name: string; correct: number; total: number }[] = [];
+  let weeklyChampionWeekNumber: number | null = null;
   if (season) {
     const weeks = await listSeasonWeeks(season.id);
     for (const pastWeek of weeks.filter((w) => w.status === 'closed' || w.status === 'finished')) {
       const weeklyRanking = await getWeeklyRanking(pastWeek.id);
-      const champion = weeklyRanking.find((r) => r.weekly_position === 1);
-      if (champion) {
-        weeklyChampion = {
-          name: champion.participant.name,
-          correct: champion.correct_picks,
-          total: champion.total_picks,
-          weekNumber: pastWeek.week_number,
-        };
+      const champions = weeklyRanking.filter((r) => r.weekly_position === 1);
+      if (champions.length > 0) {
+        weeklyChampions = champions.map((c) => ({
+          name: c.participant.name,
+          correct: c.correct_picks,
+          total: c.total_picks,
+        }));
+        weeklyChampionWeekNumber = pastWeek.week_number;
         break;
       }
     }
@@ -75,20 +90,39 @@ export default async function HomePage() {
         </section>
       )}
 
-      {leader && (
+      {leaders.length > 0 && (
         <section className="bg-gradient-to-br from-buteco-gold/20 to-transparent border border-buteco-gold/40 rounded-2xl p-6 text-center">
           <p className="font-display text-xl text-buteco-gold mb-3">🏆 LÍDER DA TEMPORADA</p>
-          <div className="flex justify-center mb-2">
-            <ParticipantAvatar name={leader.participant.name} photoUrl={leader.participant.photo_url} size="xl" ring />
+          <div className="flex justify-center flex-wrap gap-6 mb-2">
+            {leaders.map((l) => (
+              <div key={l.participant_id} className="flex flex-col items-center gap-1">
+                <ParticipantAvatar name={l.participant.name} photoUrl={l.participant.photo_url} size="xl" ring />
+                <p className="font-display text-2xl">{l.participant.name}</p>
+              </div>
+            ))}
           </div>
-          <p className="font-display text-2xl">{leader.participant.name}</p>
-          <p className="text-buteco-white/70">{leader.correct_picks} acertos</p>
+          <p className="text-buteco-white/70">{leaders[0].correct_picks} acertos</p>
           {runnerUp && (
             <p className="text-xs text-buteco-white/50 mt-2">
               🔥 {runnerUp.correct_picks} do {runnerUp.participant.name} — diferença de{' '}
-              {leader.correct_picks - runnerUp.correct_picks} acertos
+              {leaders[0].correct_picks - runnerUp.correct_picks} acertos
             </p>
           )}
+        </section>
+      )}
+
+      {trailers.length > 0 && (
+        <section className="bg-gradient-to-br from-buteco-red/20 to-transparent border border-buteco-red/40 rounded-2xl p-6 text-center">
+          <p className="font-display text-xl text-buteco-red mb-3">🤡 BOBO DA TEMPORADA</p>
+          <div className="flex justify-center flex-wrap gap-6 mb-2">
+            {trailers.map((t) => (
+              <div key={t.participant_id} className="flex flex-col items-center gap-1">
+                <ParticipantAvatar name={t.participant.name} photoUrl={t.participant.photo_url} size="xl" ringColor="red" ring />
+                <p className="font-display text-2xl">{t.participant.name}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-buteco-white/70">{trailers[0].correct_picks} acertos</p>
         </section>
       )}
 
@@ -96,10 +130,10 @@ export default async function HomePage() {
         <section>
           <h2 className="font-display text-xl mb-3">🏆 TOP 5</h2>
           <div className="bg-buteco-charcoal rounded-2xl divide-y divide-white/5">
-            {top5.map((r, i) => (
+            {top5.map((r) => (
               <div key={r.participant_id} className="flex items-center gap-3 px-4 py-3">
                 <span className="w-6 text-center font-display text-buteco-gold">
-                  {['🥇', '🥈', '🥉'][i] ?? `${i + 1}º`}
+                  {['🥇', '🥈', '🥉'][(r.current_position ?? 0) - 1] ?? `${r.current_position}º`}
                 </span>
                 <ParticipantAvatar name={r.participant.name} photoUrl={r.participant.photo_url} size="sm" />
                 <span className="flex-1 font-semibold">{r.participant.name}</span>
@@ -110,12 +144,12 @@ export default async function HomePage() {
         </section>
       )}
 
-      {weeklyChampion && (
+      {weeklyChampions.length > 0 && (
         <section className="bg-buteco-charcoal rounded-2xl p-6 text-center">
-          <p className="font-display text-lg text-buteco-gold mb-1">🏆 CAMPEÃO DA SEMANA {weeklyChampion.weekNumber}</p>
-          <p className="font-display text-2xl">{weeklyChampion.name}</p>
+          <p className="font-display text-lg text-buteco-gold mb-1">🏆 CAMPEÃO DA SEMANA {weeklyChampionWeekNumber}</p>
+          <p className="font-display text-2xl">{weeklyChampions.map((c) => c.name).join(' & ')}</p>
           <p className="text-buteco-white/60">
-            {weeklyChampion.correct}/{weeklyChampion.total}
+            {weeklyChampions[0].correct}/{weeklyChampions[0].total}
           </p>
         </section>
       )}
