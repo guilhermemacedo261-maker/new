@@ -224,6 +224,14 @@ export default function PicksPage() {
               alt="QR Code Pix"
               className="w-48 h-48 mx-auto rounded-xl border border-white/10 mb-4 bg-white p-2"
             />
+            <p className="text-[10px] text-buteco-white/40 mb-1">Pix Copia e Cola</p>
+            <textarea
+              readOnly
+              value={payment.pix_copia_cola ?? ''}
+              onFocus={(e) => e.target.select()}
+              rows={3}
+              className="w-full text-[11px] leading-snug bg-buteco-charcoal border border-white/10 rounded-xl px-3 py-2 mb-3 resize-none break-all text-buteco-white/70"
+            />
             <button
               onClick={() => {
                 navigator.clipboard.writeText(payment.pix_copia_cola ?? '');
