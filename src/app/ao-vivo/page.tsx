@@ -115,7 +115,7 @@ function AoVivoInner() {
             <div className="border-t border-white/10 pt-6">
               <p className="text-xs text-buteco-white/50 mb-4">
                 {data.pickStatus.filter((p) => p.hasPicked).length}/{data.pickStatus.length} já palpitaram nessa
-                rodada (sem spoiler - só mostra quem já enviou, não em quem votou)
+                rodada
               </p>
               <div className="flex flex-wrap justify-center gap-4">
                 {data.pickStatus.map((p) => (
