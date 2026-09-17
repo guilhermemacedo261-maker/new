@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server';
 import { getCurrentWeek, getWeekById } from '@/services/weeks-service';
-import { canRevealAllPicks } from '@/services/picks-service';
+import { canRevealAllPicks, getPickStatusForWeek } from '@/services/picks-service';
 import { getLiveWeekStandings } from '@/services/live-service';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * Placar ao vivo da rodada atual. Antes do encerramento dos palpites
- * (quinta 16h) retorna locked=true sem nenhum dado de palpite - os jogos
- * so comecam depois do prazo, entao isso na pratica so importa como
- * defesa extra (Regra 9 / secao 18).
+ * (quinta 16h) retorna locked=true, sem nenhum palpite - so quem ja
+ * enviou ou nao (Regra 9 / secao 18 continua protegendo o CONTEUDO dos
+ * palpites, so o status de "enviou/nao enviou" e publico).
  *
  * ?weekId= permite pre-visualizar uma semana especifica (ex: uma rodada
  * de teste) sem afetar o que os participantes veem por padrao.
@@ -22,7 +22,8 @@ export async function GET(request: Request) {
   if (!week) return NextResponse.json({ week: null });
 
   if (!canRevealAllPicks(week)) {
-    return NextResponse.json({ week, locked: true });
+    const pickStatus = week.status === 'open' ? await getPickStatusForWeek(week.id) : [];
+    return NextResponse.json({ week, locked: true, pickStatus });
   }
 
   const standings = await getLiveWeekStandings(week);

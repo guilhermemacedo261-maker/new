@@ -6,6 +6,7 @@ import ParticipantAvatar from '@/components/ParticipantAvatar';
 import Countdown from '@/components/Countdown';
 import type { PublicParticipant, Week } from '@/types/database';
 import type { LiveGameRow, LiveParticipantStanding } from '@/services/live-service';
+import type { PickStatus } from '@/services/picks-service';
 
 const POLL_INTERVAL_MS = 20000;
 
@@ -19,6 +20,7 @@ interface LiveResponse {
   trailers?: LiveParticipantStanding[];
   participants?: PublicParticipant[];
   games?: LiveGameRow[];
+  pickStatus?: PickStatus[];
 }
 
 function AoVivoInner() {
@@ -105,9 +107,33 @@ function AoVivoInner() {
           <p className="text-buteco-white/60 mb-4">
             Os palpites ainda não foram revelados. O placar ao vivo aparece assim que a rodada é encerrada.
           </p>
-          <div className="flex justify-center">
+          <div className="flex justify-center mb-6">
             <Countdown closeAtIso={week.picks_close_at} />
           </div>
+
+          {data.pickStatus && data.pickStatus.length > 0 && (
+            <div className="border-t border-white/10 pt-6">
+              <p className="text-xs text-buteco-white/50 mb-4">
+                {data.pickStatus.filter((p) => p.hasPicked).length}/{data.pickStatus.length} já palpitaram nessa
+                rodada (sem spoiler - só mostra quem já enviou, não em quem votou)
+              </p>
+              <div className="flex flex-wrap justify-center gap-4">
+                {data.pickStatus.map((p) => (
+                  <div key={p.participant.id} className="flex flex-col items-center gap-1 w-16">
+                    <div className={`relative ${p.hasPicked ? '' : 'opacity-40 grayscale'}`}>
+                      <ParticipantAvatar name={p.participant.name} photoUrl={p.participant.photo_url} size="md" />
+                      <span className="absolute -bottom-1 -right-1 text-base leading-none">
+                        {p.hasPicked ? '✅' : '⏳'}
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-center text-buteco-white/70 truncate w-full">
+                      {p.participant.name}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <>

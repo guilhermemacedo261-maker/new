@@ -1,6 +1,7 @@
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { getPendingPaymentForParticipant } from './payments-service';
-import type { Game, GameWithPick, TeamSide, Week } from '@/types/database';
+import { listActiveParticipants, toPublicParticipant } from './participants-service';
+import type { Game, GameWithPick, PublicParticipant, TeamSide, Week } from '@/types/database';
 
 export class PicksClosedError extends Error {
   constructor() {
@@ -111,4 +112,32 @@ export async function getAllPicksForWeek(weekId: string) {
 
 export function canRevealAllPicks(week: Week, now = new Date()): boolean {
   return week.status !== 'open' || now.getTime() >= new Date(week.picks_close_at).getTime();
+}
+
+export interface PickStatus {
+  participant: PublicParticipant;
+  hasPicked: boolean;
+}
+
+/**
+ * Quem ja enviou os palpites da semana e quem ainda nao - so o status
+ * (sim/nao), NUNCA o palpite em si (secao 18/Regra 9: ninguem pode ver
+ * em quem os outros votaram antes do encerramento). Usado no /ao-vivo
+ * enquanto a rodada ainda esta aberta pra palpitar.
+ */
+export async function getPickStatusForWeek(weekId: string): Promise<PickStatus[]> {
+  const supabase = getSupabaseAdmin();
+
+  const [participants, { data: picks, error: picksError }] = await Promise.all([
+    listActiveParticipants(),
+    supabase.from('picks').select('participant_id').eq('week_id', weekId),
+  ]);
+  if (picksError) throw picksError;
+
+  const pickedParticipantIds = new Set((picks ?? []).map((p) => p.participant_id));
+
+  return participants.map((participant) => ({
+    participant: toPublicParticipant(participant),
+    hasPicked: pickedParticipantIds.has(participant.id),
+  }));
 }
