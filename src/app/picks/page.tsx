@@ -26,6 +26,8 @@ export default function PicksPage() {
   const [loggingIn, setLoggingIn] = useState(false);
   const [payment, setPayment] = useState<PendingPayment | null>(null);
   const [copiedPix, setCopiedPix] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+  const [regenerateError, setRegenerateError] = useState<string | null>(null);
 
   async function checkPaymentThenLoad() {
     const paymentRes = await fetch('/api/payments/me').then((r) => r.json());
@@ -123,6 +125,22 @@ export default function PicksPage() {
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [payment]);
+
+  async function handleRegeneratePix() {
+    setRegenerating(true);
+    setRegenerateError(null);
+    try {
+      const res = await fetch('/api/payments/me', { method: 'POST' });
+      const body = await res.json();
+      if (!res.ok) {
+        setRegenerateError(body.error ?? 'Erro ao gerar novo Pix.');
+        return;
+      }
+      setPayment(body.payment);
+    } finally {
+      setRegenerating(false);
+    }
+  }
 
   function handlePick(gameId: string, side: TeamSide) {
     setSavedMessage(null);
@@ -242,12 +260,30 @@ export default function PicksPage() {
             >
               {copiedPix ? 'CÓDIGO COPIADO ✅' : 'COPIAR CÓDIGO PIX'}
             </button>
+            <button
+              onClick={handleRegeneratePix}
+              disabled={regenerating}
+              className="w-full py-2 text-xs text-buteco-white/50 underline disabled:opacity-40 mb-1"
+            >
+              {regenerating ? 'Gerando novo Pix...' : 'Deu erro no Pix ou expirou? Gerar um novo'}
+            </button>
           </>
         ) : (
-          <p className="text-buteco-white/50 text-sm mb-4 bg-buteco-charcoal rounded-xl p-4">
-            O Pix ainda está sendo gerado. Se demorar, chama o admin pra liberar manualmente.
-          </p>
+          <>
+            <p className="text-buteco-white/50 text-sm mb-4 bg-buteco-charcoal rounded-xl p-4">
+              O Pix ainda está sendo gerado.
+            </p>
+            <button
+              onClick={handleRegeneratePix}
+              disabled={regenerating}
+              className="w-full py-3 rounded-xl bg-buteco-green font-display text-lg mb-3 disabled:opacity-40"
+            >
+              {regenerating ? 'GERANDO...' : 'GERAR PIX'}
+            </button>
+          </>
         )}
+
+        {regenerateError && <p className="text-buteco-red text-xs mb-3">{regenerateError}</p>}
 
         <p className="text-xs text-buteco-white/40">Assim que o Pix cair, isso libera sozinho (verificando a cada poucos segundos).</p>
         <button onClick={handleSwitchParticipant} className="mt-6 text-xs text-buteco-white/50 underline">
