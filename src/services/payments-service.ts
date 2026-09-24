@@ -16,12 +16,13 @@ function payerEmailFor(participantId: string): string {
   return `participante-${participantId}@nfldebuteco.app`;
 }
 
-async function generateChargeFor(week: Week, participant: Participant, amount: number) {
+async function generateChargeFor(week: Week, participant: Participant, amount: number, idempotencyKey?: string) {
   return createPixCharge({
     amount,
     description: `NFL de Buteco - Semana ${week.week_number} - ${participant.name}`,
     externalReference: externalReferenceFor(week.id, participant.id),
     payerEmail: payerEmailFor(participant.id),
+    idempotencyKey,
   });
 }
 
@@ -102,7 +103,13 @@ async function createPendingPayment(week: Week, participant: Participant, amount
   }
 }
 
-/** Regenera o QR/copia-e-cola de uma cobranca que ficou sem Pix (ex: token nao estava configurado na hora). */
+/**
+ * Regenera o QR/copia-e-cola de uma cobranca pendente - seja porque ficou sem Pix (ex: token
+ * nao estava configurado na hora) ou porque o Pix anterior expirou (Mercado Pago tem prazo de
+ * validade; passado esse prazo o banco do pagador recusa e devolve o dinheiro). Usa uma chave de
+ * idempotencia unica pra garantir que o Mercado Pago crie uma cobranca NOVA (com validade nova),
+ * em vez de devolver a mesma cobranca (e o mesmo QR ja vencido) de novo.
+ */
 export async function regeneratePixCharge(weeklyPaymentId: string): Promise<void> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
@@ -115,7 +122,8 @@ export async function regeneratePixCharge(weeklyPaymentId: string): Promise<void
   const row = data as unknown as WeeklyPayment & { week: Week; participant: Participant };
   if (row.status !== 'pending') throw new Error('Essa cobranca ja foi paga ou perdoada.');
 
-  const charge = await generateChargeFor(row.week, row.participant, row.amount);
+  const idempotencyKey = `${externalReferenceFor(row.week.id, row.participant.id)}:regen:${Date.now()}`;
+  const charge = await generateChargeFor(row.week, row.participant, row.amount, idempotencyKey);
   const { error: updateError } = await supabase
     .from('weekly_payments')
     .update({ pix_payment_id: charge.id, pix_copia_cola: charge.copiaECola, pix_qr_base64: charge.qrCodeBase64 })

@@ -152,15 +152,13 @@ export default function AdminPagamentosPage() {
               </div>
               {p.status === 'pending' && (
                 <div className="flex gap-2">
-                  {!p.pix_copia_cola && (
-                    <button
-                      onClick={() => runAction(p.id, 'regenerate')}
-                      disabled={busyId === p.id}
-                      className="text-xs px-3 py-2 rounded-lg bg-buteco-gold/20 text-buteco-gold disabled:opacity-40"
-                    >
-                      Gerar Pix
-                    </button>
-                  )}
+                  <button
+                    onClick={() => runAction(p.id, 'regenerate')}
+                    disabled={busyId === p.id}
+                    className="text-xs px-3 py-2 rounded-lg bg-buteco-gold/20 text-buteco-gold disabled:opacity-40"
+                  >
+                    {p.pix_copia_cola ? 'Gerar Pix novo' : 'Gerar Pix'}
+                  </button>
                   <button
                     onClick={() => runAction(p.id, 'paid')}
                     disabled={busyId === p.id}

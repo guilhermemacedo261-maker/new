@@ -13,9 +13,15 @@ function getAccessToken(): string {
 export interface CreatePixChargeInput {
   amount: number;
   description: string;
-  /** Usado como chave de idempotencia (Regra: nunca gerar 2 cobrancas pro mesmo participante/semana) e pra casar o webhook com a cobranca. */
+  /** Usado pra casar o webhook com a cobranca (nao muda entre tentativas do mesmo participante/semana). */
   externalReference: string;
   payerEmail: string;
+  /**
+   * Chave de idempotencia da chamada. Por padrao usa externalReference (evita duplicar a
+   * cobranca em retry de rede). Ao REGENERAR um Pix expirado precisa ser unica a cada chamada,
+   * senao o Mercado Pago devolve a mesma cobranca (e o mesmo QR ja vencido) de novo.
+   */
+  idempotencyKey?: string;
 }
 
 export interface PixCharge {
@@ -26,15 +32,19 @@ export interface PixCharge {
 }
 
 /** Cria uma cobranca Pix imediata no Mercado Pago e devolve o QR Code/copia-e-cola. */
+/** Validade padrao de uma cobranca Pix - da tempo de sobra ate a proxima rodada abrir, evitando que o QR expire antes de alguem pagar. */
+const PIX_EXPIRATION_DAYS = 5;
+
 export async function createPixCharge(input: CreatePixChargeInput): Promise<PixCharge> {
   const appUrl = process.env.APP_URL;
+  const dateOfExpiration = new Date(Date.now() + PIX_EXPIRATION_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const res = await fetch(`${BASE_URL}/v1/payments`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${getAccessToken()}`,
       'Content-Type': 'application/json',
       // evita duplicar a cobranca se a chamada for repetida (retry de rede, etc).
-      'X-Idempotency-Key': input.externalReference,
+      'X-Idempotency-Key': input.idempotencyKey ?? input.externalReference,
     },
     body: JSON.stringify({
       transaction_amount: input.amount,
@@ -43,6 +53,7 @@ export async function createPixCharge(input: CreatePixChargeInput): Promise<PixC
       payer: { email: input.payerEmail },
       external_reference: input.externalReference,
       notification_url: appUrl ? `${appUrl}/api/webhooks/mercadopago` : undefined,
+      date_of_expiration: dateOfExpiration,
     }),
   });
 
