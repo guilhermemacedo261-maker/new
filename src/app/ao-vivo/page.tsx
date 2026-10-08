@@ -184,7 +184,7 @@ function AoVivoInner() {
               <table className="w-full text-xs border-collapse">
                 <thead>
                   <tr>
-                    <th className="sticky left-0 bg-buteco-black text-left px-2 py-2">Jogo</th>
+                    <th className="sticky left-0 z-10 bg-buteco-black text-left px-2 py-2">Jogo</th>
                     {(data.participants ?? []).map((p) => (
                       <th key={p.id} className="px-2 py-2 min-w-[70px]">
                         <div className="flex flex-col items-center gap-1">
@@ -198,7 +198,7 @@ function AoVivoInner() {
                 <tbody>
                   {(data.games ?? []).map((game) => (
                     <tr key={game.id} className="border-t border-white/5">
-                      <td className="sticky left-0 bg-buteco-black px-2 py-2 font-semibold whitespace-nowrap">
+                      <td className="sticky left-0 z-10 bg-buteco-black px-2 py-2 font-semibold whitespace-nowrap">
                         {game.status === 'scheduled' ? (
                           <span>
                             {game.awayAbbreviation} x {game.homeAbbreviation}
