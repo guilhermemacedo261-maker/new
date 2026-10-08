@@ -13,6 +13,8 @@ export interface LiveGameRow {
   id: string;
   awayAbbreviation: string;
   homeAbbreviation: string;
+  awayLogo: string | null;
+  homeLogo: string | null;
   awayScore: number | null;
   homeScore: number | null;
   status: GameStatus;
@@ -97,6 +99,8 @@ export async function getLiveWeekStandings(week: Week): Promise<LiveWeekStanding
       id: game.id,
       awayAbbreviation: game.away_team_abbreviation,
       homeAbbreviation: game.home_team_abbreviation,
+      awayLogo: game.away_team_logo,
+      homeLogo: game.home_team_logo,
       awayScore: game.away_score,
       homeScore: game.home_score,
       status: game.status,

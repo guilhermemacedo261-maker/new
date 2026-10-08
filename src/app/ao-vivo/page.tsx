@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import ParticipantAvatar from '@/components/ParticipantAvatar';
 import Countdown from '@/components/Countdown';
 import type { PublicParticipant, Week } from '@/types/database';
@@ -216,14 +217,28 @@ function AoVivoInner() {
                         let bg = 'bg-buteco-card';
                         if (pick?.isCorrect === true) bg = isFinal ? 'bg-buteco-green/70' : 'bg-buteco-green/30';
                         if (pick?.isCorrect === false) bg = isFinal ? 'bg-buteco-red/70' : 'bg-buteco-red/30';
-                        const label = pick
+                        const pickedLogo = pick ? (pick.selectedTeam === 'home' ? game.homeLogo : game.awayLogo) : null;
+                        const pickedAbbreviation = pick
                           ? pick.selectedTeam === 'home'
                             ? game.homeAbbreviation
                             : game.awayAbbreviation
-                          : '-';
+                          : null;
                         return (
                           <td key={p.id} className={`px-2 py-2 text-center ${bg}`}>
-                            {label}
+                            {pickedLogo ? (
+                              <div className="relative w-10 h-10 mx-auto rounded-full bg-white/95 p-1.5">
+                                <Image
+                                  src={pickedLogo}
+                                  alt={pickedAbbreviation ?? ''}
+                                  fill
+                                  className="object-contain p-0.5"
+                                />
+                              </div>
+                            ) : pickedAbbreviation ? (
+                              <span className="font-semibold">{pickedAbbreviation}</span>
+                            ) : (
+                              <span className="text-buteco-white/30">-</span>
+                            )}
                           </td>
                         );
                       })}
