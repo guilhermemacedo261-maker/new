@@ -235,9 +235,11 @@ export async function getFundBalance(): Promise<FundBalance> {
   const rows = (data ?? []) as unknown as (FundTransaction & { participant: Participant | null })[];
   const total = rows.reduce((sum, t) => sum + (t.type === 'contribution' ? Number(t.amount) : -Number(t.amount)), 0);
 
+  // Participante inativo some do extrato publico tambem - o saldo total continua exato (calculado
+  // acima a partir de TODAS as transacoes), so a lista detalhada por pessoa e filtrada.
   const contributionsByParticipant = new Map<string, { participant: Participant; totalPaid: number; weeksPaid: number }>();
   for (const row of rows) {
-    if (row.type !== 'contribution' || !row.participant) continue;
+    if (row.type !== 'contribution' || !row.participant || !row.participant.active) continue;
     const existing = contributionsByParticipant.get(row.participant.id);
     if (existing) {
       existing.totalPaid += Number(row.amount);
@@ -256,7 +258,9 @@ export async function getFundBalance(): Promise<FundBalance> {
 
   return {
     total,
-    transactions: rows.map((t) => ({ ...t, participant: t.participant ? toPublicParticipant(t.participant) : null })),
+    transactions: rows
+      .filter((t) => !t.participant || t.participant.active)
+      .map((t) => ({ ...t, participant: t.participant ? toPublicParticipant(t.participant) : null })),
     contributions,
   };
 }

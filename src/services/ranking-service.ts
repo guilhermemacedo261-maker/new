@@ -173,6 +173,7 @@ async function recomputeSeasonResults(seasonId: string): Promise<void> {
   if (error) throw error;
 }
 
+/** Participante inativo some de todo ranking publico - os registros ficam no banco, so a exibicao e filtrada. */
 export async function getSeasonRanking(seasonId: string): Promise<(SeasonResult & { participant: PublicParticipant })[]> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
@@ -182,7 +183,7 @@ export async function getSeasonRanking(seasonId: string): Promise<(SeasonResult 
     .order('current_position', { ascending: true, nullsFirst: false });
   if (error) throw error;
   const rows = data as unknown as (SeasonResult & { participant: Participant })[];
-  return rows.map((r) => ({ ...r, participant: toPublicParticipant(r.participant) }));
+  return rows.filter((r) => r.participant.active).map((r) => ({ ...r, participant: toPublicParticipant(r.participant) }));
 }
 
 export async function getWeeklyRanking(weekId: string): Promise<(WeeklyResult & { participant: PublicParticipant })[]> {
@@ -194,5 +195,5 @@ export async function getWeeklyRanking(weekId: string): Promise<(WeeklyResult & 
     .order('weekly_position', { ascending: true, nullsFirst: false });
   if (error) throw error;
   const rows = data as unknown as (WeeklyResult & { participant: Participant })[];
-  return rows.map((r) => ({ ...r, participant: toPublicParticipant(r.participant) }));
+  return rows.filter((r) => r.participant.active).map((r) => ({ ...r, participant: toPublicParticipant(r.participant) }));
 }

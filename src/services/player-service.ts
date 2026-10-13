@@ -34,7 +34,7 @@ export async function getPlayerProfile(participantId: string, seasonId: string):
     .eq('id', participantId)
     .maybeSingle();
   if (pError) throw pError;
-  if (!participant) return null;
+  if (!participant || !(participant as Participant).active) return null;
 
   const { data: seasonResult } = await supabase
     .from('season_results')

@@ -42,10 +42,11 @@ export async function getHallOfFame(): Promise<HallOfFame> {
     .in('season_id', seasons.map((s) => s.id));
   if (resultsError) throw resultsError;
 
-  const typedResults = (results as unknown as (SeasonResult & { participant: Participant })[]).map((r) => ({
-    ...r,
-    participant: toPublicParticipant(r.participant),
-  }));
+  // Participante inativo some do Hall da Fama tambem - inclusive de titulos ja conquistados em
+  // temporadas encerradas (os registros continuam no banco, so a exibicao publica e filtrada).
+  const typedResults = (results as unknown as (SeasonResult & { participant: Participant })[])
+    .filter((r) => r.participant.active)
+    .map((r) => ({ ...r, participant: toPublicParticipant(r.participant) }));
 
   const champions: SeasonChampion[] = seasons
     .map((season) => {
