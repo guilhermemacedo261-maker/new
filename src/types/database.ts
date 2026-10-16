@@ -92,6 +92,8 @@ export type WeeklyResult = {
   total_picks: number;
   accuracy_percentage: number;
   weekly_position: number | null;
+  /** Punicao manual do admin (ex: nao palpitou a tempo) - descontada dos acertos calculados a partir dos palpites reais. */
+  manual_penalty: number;
   created_at: string;
 };
 

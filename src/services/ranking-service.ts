@@ -87,12 +87,28 @@ async function recomputeWeeklyResults(week: Week, games: Game[]): Promise<void> 
   const { data: picks, error: picksError } = await supabase.from('picks').select('*').eq('week_id', week.id);
   if (picksError) throw picksError;
 
+  // Preserva qualquer punicao manual ja gravada (ex: admin descontou 1 acerto
+  // de quem nao palpitou a tempo) - esse valor nao vem dos palpites, entao
+  // precisa ser relido aqui pra nao ser perdido a cada recalculo automatico.
+  const { data: existingResults, error: existingError } = await supabase
+    .from('weekly_results')
+    .select('participant_id, manual_penalty')
+    .eq('week_id', week.id);
+  if (existingError) throw existingError;
+  const penaltyByParticipant = new Map((existingResults ?? []).map((r) => [r.participant_id, r.manual_penalty]));
+
   const finalGameIds = new Set(games.filter((g) => g.status === 'final' && g.winner).map((g) => g.id));
 
   const rows: RankRow[] = (participants as Participant[]).map((participant) => {
     const myPicks = (picks as Pick[]).filter((p) => p.participant_id === participant.id && finalGameIds.has(p.game_id));
-    const correct = myPicks.filter((p) => p.is_correct === true).length;
-    const wrong = myPicks.filter((p) => p.is_correct === false).length;
+    const rawCorrect = myPicks.filter((p) => p.is_correct === true).length;
+    const rawWrong = myPicks.filter((p) => p.is_correct === false).length;
+    // A punicao "rouba" acertos e vira erro no lugar - mantem o total de
+    // palpites decididos igual, so piora o aproveitamento de quem foi punido.
+    const penalty = penaltyByParticipant.get(participant.id) ?? 0;
+    const shift = Math.min(penalty, rawCorrect);
+    const correct = rawCorrect - shift;
+    const wrong = rawWrong + shift;
     const total = correct + wrong;
     return {
       participantId: participant.id,
